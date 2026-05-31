@@ -80,6 +80,15 @@ const EXERCISE_GROUPS = [
 // フラットリスト（フィルター用）
 const EXERCISES = EXERCISE_GROUPS.flatMap(g => g.items.map(i => i.value));
 
+// 種目名 → 部位 マップ（ラベルの[部位]から自動生成）
+const EXERCISE_PART_MAP: Record<string, string> = {};
+EXERCISE_GROUPS.forEach(g => {
+  g.items.forEach(item => {
+    const match = item.label.match(/^\[([^\]]+)\]/);
+    EXERCISE_PART_MAP[item.value] = match ? match[1] : '';
+  });
+});
+
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日'];
 
 function todayStr() {
@@ -420,11 +429,21 @@ function WeightTab() {
       <div key={r.id} style={{ marginBottom: '8px' }}>
         <div className={`record-item${isPB ? ' pb' : ''}`}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: '13px' }}>
-              {r.exercise_name}
-              {isPB && <span className="pb-badge">🏆 PB</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '13px' }}>
+              <span style={{
+                display: 'inline-block', minWidth: '2.5em',
+                fontSize: '11px', fontWeight: 700,
+                color: 'var(--primary)',
+              }}>
+                {EXERCISE_PART_MAP[r.exercise_name] ?? ''}
+              </span>
+              <span style={{ color: 'var(--text-sub)', fontWeight: 400 }}>｜</span>
+              <span>
+                {r.exercise_name}
+                {isPB && <span className="pb-badge" style={{ marginLeft: '4px' }}>🏆 PB</span>}
+              </span>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '2px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '2px', paddingLeft: 'calc(2.5em + 18px)' }}>
               {filterEx && <span>{r.date} ／ </span>}
               {r.weight}kg × {r.reps}rep × {r.sets}set
             </div>
