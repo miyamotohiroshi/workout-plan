@@ -200,7 +200,7 @@ function SizeTab() {
       <div className="rec-card">
         <div className="rec-card-title">計測データ入力</div>
         <div className="input-row">
-          <div className="input-group" style={{ minWidth: '130px' }}>
+          <div className="input-group">
             <label>日付</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
@@ -355,7 +355,7 @@ function WeightTab() {
       <div className="rec-card">
         <div className="rec-card-title">重量記録入力</div>
         <div className="input-row">
-          <div className="input-group" style={{ minWidth: '130px' }}>
+          <div className="input-group">
             <label>日付</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
@@ -509,11 +509,11 @@ function PhotoTab() {
       <div className="rec-card">
         <div className="rec-card-title">写真アップロード</div>
         <div className="input-row">
-          <div className="input-group" style={{ minWidth: '130px' }}>
+          <div className="input-group">
             <label>日付</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
-          <div className="input-group" style={{ minWidth: '180px' }}>
+          <div className="input-group">
             <label>メモ</label>
             <input type="text" placeholder="コメント（任意）" value={memo} onChange={e => setMemo(e.target.value)} />
           </div>
@@ -691,7 +691,7 @@ function CheckinTab() {
       <div className="rec-card">
         <div className="rec-card-title">チェックイン入力</div>
         <div className="input-row">
-          <div className="input-group" style={{ minWidth: '130px' }}>
+          <div className="input-group">
             <label>週（日付）</label>
             <input type="date" value={week} onChange={e => setWeek(e.target.value)} />
           </div>
