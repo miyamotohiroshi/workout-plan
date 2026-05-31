@@ -256,6 +256,7 @@ body::before {
 
 /* ===== SUPPLEMENT ===== */
 .supp-card{background:var(--card-bg);backdrop-filter:blur(12px);border-radius:var(--radius);padding:16px;margin-bottom:10px;border:1px solid rgba(255,255,255,.7);box-shadow:0 2px 12px rgba(0,0,0,.06);display:flex;align-items:flex-start;gap:12px;}
+.supp-group-title{font-size:13px;font-weight:800;color:var(--text);margin:16px 0 8px;padding-left:2px;}
 .supp-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,#f0fdf4,#dcfce7);}
 .supp-name{font-size:15px;font-weight:700;margin-bottom:4px;}
 .supp-desc{font-size:12px;color:var(--text-sub);line-height:1.6;}
