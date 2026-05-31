@@ -430,17 +430,22 @@ function WeightTab() {
 }
 
 // ── 写真記録 ────────────────────────────────────────────────────────────────
+const ANGLES = ['正面', '横（左）', '横（右）', '背中'] as const;
+type Angle = typeof ANGLES[number];
+
 interface PhotoRecord {
   id: string;
   date: string;
   memo: string;
   storage_path: string;
+  angle: Angle;
 }
 
 function PhotoTab() {
   const [photos, setPhotos] = useState<PhotoRecord[]>([]);
   const [date, setDate] = useState(todayStr());
   const [memo, setMemo] = useState('');
+  const [angle, setAngle] = useState<Angle>('正面');
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -482,10 +487,10 @@ function PhotoTab() {
     setUploading(true);
     try {
       const blob = await resizeImage(file);
-      const path = `${date}-${Date.now()}.jpg`;
+      const path = `${date}-${angle}-${Date.now()}.jpg`;
       const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
       if (upErr) { alert('アップロードエラー: ' + upErr.message); return; }
-      const { error: dbErr } = await supabase.from('photos').insert({ date, memo, storage_path: path });
+      const { error: dbErr } = await supabase.from('photos').insert({ date, memo, storage_path: path, angle });
       if (dbErr) { alert('DB保存エラー: ' + dbErr.message); return; }
       showToast('保存しました！');
       setMemo('');
@@ -502,9 +507,11 @@ function PhotoTab() {
     load();
   };
 
-  const before = photos[0];
-  const after = photos[photos.length - 1];
-  const showComparison = photos.length >= 2 && before.id !== after.id;
+  // 角度ごとにグループ化してBefore/After
+  const angleGroups = ANGLES.map(a => ({
+    angle: a,
+    photos: photos.filter(p => (p.angle ?? '正面') === a),
+  })).filter(g => g.photos.length >= 2);
 
   return (
     <div className="record-panel active">
@@ -516,14 +523,19 @@ function PhotoTab() {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div className="input-group">
-            <label>メモ</label>
-            <input type="text" placeholder="コメント（任意）" value={memo} onChange={e => setMemo(e.target.value)} />
+            <label>角度</label>
+            <select value={angle} onChange={e => setAngle(e.target.value as Angle)}>
+              {ANGLES.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           </div>
         </div>
-        <div
-          className="photo-upload-area"
-          onClick={() => fileRef.current?.click()}
-        >
+        <div className="input-row">
+          <div className="input-group">
+            <label>メモ（任意）</label>
+            <input type="text" placeholder="初回・3ヶ月後 など" value={memo} onChange={e => setMemo(e.target.value)} />
+          </div>
+        </div>
+        <div className="photo-upload-area" onClick={() => fileRef.current?.click()}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>📷</div>
           <div style={{ fontSize: '13px', color: 'var(--text-sub)' }}>
             {uploading ? 'アップロード中...' : 'タップして写真を選択'}
@@ -537,21 +549,32 @@ function PhotoTab() {
         </div>
       </div>
 
-      {showComparison && (
+      {angleGroups.length > 0 && (
         <div className="rec-card">
           <div className="rec-card-title">Before / After 比較</div>
-          <div className="comparison-wrap">
-            <div className="comparison-side">
-              <img src={getPhotoUrl(before.storage_path)} alt="before" />
-              <div className="comparison-tag">BEFORE</div>
-              <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: '10px', borderRadius: '6px', padding: '2px 6px' }}>{before.date}</div>
-            </div>
-            <div className="comparison-side">
-              <img src={getPhotoUrl(after.storage_path)} alt="after" />
-              <div className="comparison-tag">AFTER</div>
-              <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: '10px', borderRadius: '6px', padding: '2px 6px' }}>{after.date}</div>
-            </div>
-          </div>
+          {angleGroups.map(g => {
+            const before = g.photos[0];
+            const after = g.photos[g.photos.length - 1];
+            return (
+              <div key={g.angle} style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', marginBottom: '8px' }}>
+                  📐 {g.angle}
+                </div>
+                <div className="comparison-wrap">
+                  <div className="comparison-side">
+                    <img src={getPhotoUrl(before.storage_path)} alt="before" />
+                    <div className="comparison-tag">BEFORE</div>
+                    <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: '10px', borderRadius: '6px', padding: '2px 6px' }}>{before.date}</div>
+                  </div>
+                  <div className="comparison-side">
+                    <img src={getPhotoUrl(after.storage_path)} alt="after" />
+                    <div className="comparison-tag" style={{ background: 'rgba(37,99,235,.8)' }}>AFTER</div>
+                    <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: '10px', borderRadius: '6px', padding: '2px 6px' }}>{after.date}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -563,6 +586,7 @@ function PhotoTab() {
               <div key={p.id} className="photo-item">
                 <img src={getPhotoUrl(p.storage_path)} alt={p.date} />
                 <div className="photo-item-label">
+                  <div style={{ fontWeight: 700 }}>{p.angle ?? '正面'}</div>
                   <div>{p.date}</div>
                   {p.memo && <div style={{ opacity: .8 }}>{p.memo}</div>}
                 </div>
