@@ -455,6 +455,10 @@ function PhotoTab() {
   const [angle, setAngle] = useState<Angle>('正面');
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editMemo, setEditMemo] = useState('');
+  const [lightbox, setLightbox] = useState<PhotoRecord | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -511,6 +515,23 @@ function PhotoTab() {
     if (!confirm('削除しますか？')) return;
     await supabase.storage.from('photos').remove([photo.storage_path]);
     await supabase.from('photos').delete().eq('id', photo.id);
+    load();
+  };
+
+  const startEdit = (photo: PhotoRecord) => {
+    setEditingId(photo.id);
+    setEditDate(photo.date);
+    setEditMemo(photo.memo ?? '');
+  };
+
+  const saveEdit = async (photo: PhotoRecord) => {
+    const { error } = await supabase
+      .from('photos')
+      .update({ date: editDate, memo: editMemo })
+      .eq('id', photo.id);
+    if (error) { alert('更新エラー: ' + error.message); return; }
+    showToast('更新しました！');
+    setEditingId(null);
     load();
   };
 
@@ -585,26 +606,90 @@ function PhotoTab() {
         </div>
       )}
 
+      {/* ライトボックス */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <img
+            src={getPhotoUrl(lightbox.storage_path)}
+            alt={lightbox.date}
+            style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: '12px' }}
+          />
+          <div style={{ color: '#fff', marginTop: '12px', fontSize: '13px', textAlign: 'center' }}>
+            <div style={{ fontWeight: 700 }}>{lightbox.angle ?? '正面'}</div>
+            <div style={{ opacity: 0.7 }}>{lightbox.date}{lightbox.memo ? `　${lightbox.memo}` : ''}</div>
+            <div style={{ marginTop: '8px', opacity: 0.5, fontSize: '11px' }}>タップで閉じる</div>
+          </div>
+        </div>
+      )}
+
       {photos.length > 0 && (
         <div className="rec-card">
           <div className="rec-card-title">フォトギャラリー</div>
           <div className="photo-grid">
             {photos.slice().reverse().map(p => (
               <div key={p.id} className="photo-item">
-                <img src={getPhotoUrl(p.storage_path)} alt={p.date} />
+                {/* 画像タップ → 拡大 */}
+                <img
+                  src={getPhotoUrl(p.storage_path)}
+                  alt={p.date}
+                  onClick={() => setLightbox(p)}
+                  style={{ cursor: 'pointer' }}
+                />
                 <div className="photo-item-label">
                   <div style={{ fontWeight: 700 }}>{p.angle ?? '正面'}</div>
                   <div>{p.date}</div>
                   {p.memo && <div style={{ opacity: .8 }}>{p.memo}</div>}
                 </div>
-                <button
-                  onClick={() => del(p)}
-                  style={{
-                    position: 'absolute', top: '6px', right: '6px',
-                    background: 'rgba(0,0,0,.55)', color: '#fff', border: 'none',
-                    borderRadius: '8px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer',
-                  }}
-                >削除</button>
+                {/* 操作ボタン */}
+                <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '4px' }}>
+                  <button
+                    onClick={() => startEdit(p)}
+                    style={{ background: 'rgba(37,99,235,.8)', color: '#fff', border: 'none', borderRadius: '8px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}
+                  >編集</button>
+                  <button
+                    onClick={() => del(p)}
+                    style={{ background: 'rgba(0,0,0,.55)', color: '#fff', border: 'none', borderRadius: '8px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}
+                  >削除</button>
+                </div>
+                {/* インライン編集フォーム */}
+                {editingId === p.id && (
+                  <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.97)',
+                      borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>📝 編集</div>
+                    <div className="input-group">
+                      <label>日付</label>
+                      <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+                    </div>
+                    <div className="input-group">
+                      <label>メモ</label>
+                      <input type="text" placeholder="メモ（任意）" value={editMemo} onChange={e => setEditMemo(e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => saveEdit(p)}
+                        style={{ flex: 1, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                      >保存</button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        style={{ flex: 1, background: '#f1f5f9', color: 'var(--text)', border: 'none', borderRadius: '10px', padding: '8px', fontSize: '12px', cursor: 'pointer' }}
+                      >キャンセル</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
