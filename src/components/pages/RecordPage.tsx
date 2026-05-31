@@ -308,6 +308,12 @@ function WeightTab() {
   const [sets, setSets] = useState('');
   const [saving, setSaving] = useState(false);
   const [filterEx, setFilterEx] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editExercise, setEditExercise] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editReps, setEditReps] = useState('');
+  const [editSets, setEditSets] = useState('');
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -323,11 +329,8 @@ function WeightTab() {
     if (!date || !weight || !reps || !sets) { alert('全項目を入力してください'); return; }
     setSaving(true);
     const { error } = await supabase.from('exercise_records').insert({
-      date,
-      exercise_name: exerciseName,
-      weight: parseFloat(weight),
-      reps: parseInt(reps),
-      sets: parseInt(sets),
+      date, exercise_name: exerciseName,
+      weight: parseFloat(weight), reps: parseInt(reps), sets: parseInt(sets),
     });
     setSaving(false);
     if (error) { alert('エラー: ' + error.message); return; }
@@ -336,21 +339,157 @@ function WeightTab() {
     load();
   };
 
-  const del = async (id: string) => {
-    if (!confirm('削除しますか？')) return;
-    await supabase.from('exercise_records').delete().eq('id', id);
+  const startEdit = (r: ExerciseRecord) => {
+    setEditingId(r.id);
+    setEditDate(r.date);
+    setEditExercise(r.exercise_name);
+    setEditWeight(String(r.weight));
+    setEditReps(String(r.reps));
+    setEditSets(String(r.sets));
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const { error } = await supabase.from('exercise_records').update({
+      date: editDate, exercise_name: editExercise,
+      weight: parseFloat(editWeight), reps: parseInt(editReps), sets: parseInt(editSets),
+    }).eq('id', editingId);
+    if (error) { alert('エラー: ' + error.message); return; }
+    showToast('更新しました！');
+    setEditingId(null);
     load();
   };
 
-  // PB: highest weight per exercise
+  const del = async (id: string) => {
+    if (!confirm('削除しますか？')) return;
+    await supabase.from('exercise_records').delete().eq('id', id);
+    setEditingId(null);
+    load();
+  };
+
+  // PB per exercise
   const pbMap: Record<string, number> = {};
   records.forEach(r => {
-    if (!(r.exercise_name in pbMap) || r.weight > pbMap[r.exercise_name]) {
+    if (!(r.exercise_name in pbMap) || r.weight > pbMap[r.exercise_name])
       pbMap[r.exercise_name] = r.weight;
-    }
   });
 
   const filtered = filterEx ? records.filter(r => r.exercise_name === filterEx) : records;
+
+  // 日付ごとにグループ化（すべて表示時のみ）
+  const renderList = () => {
+    if (filtered.length === 0) {
+      return <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>;
+    }
+
+    if (filterEx) {
+      // 絞り込み中：グループなしでそのまま表示
+      return filtered.map(r => renderItem(r));
+    }
+
+    // すべて表示：日付ごとにグループ化
+    const groups: { date: string; items: ExerciseRecord[] }[] = [];
+    filtered.forEach(r => {
+      const last = groups[groups.length - 1];
+      if (last && last.date === r.date) {
+        last.items.push(r);
+      } else {
+        groups.push({ date: r.date, items: [r] });
+      }
+    });
+
+    return groups.map(g => (
+      <div key={g.date}>
+        <div style={{
+          fontSize: '11px', fontWeight: 700, color: 'var(--primary)',
+          padding: '10px 4px 6px',
+          borderBottom: '1px solid rgba(59,130,246,0.15)',
+          marginBottom: '6px', letterSpacing: '0.05em',
+        }}>
+          📅 {g.date}
+        </div>
+        {g.items.map(r => renderItem(r))}
+      </div>
+    ));
+  };
+
+  const renderItem = (r: ExerciseRecord) => {
+    const isPB = pbMap[r.exercise_name] === r.weight;
+    const isEditing = editingId === r.id;
+    return (
+      <div key={r.id} style={{ marginBottom: '8px' }}>
+        <div className={`record-item${isPB ? ' pb' : ''}`}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>
+              {r.exercise_name}
+              {isPB && <span className="pb-badge">🏆 PB</span>}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '2px' }}>
+              {filterEx && <span>{r.date} ／ </span>}
+              {r.weight}kg × {r.reps}rep × {r.sets}set
+            </div>
+          </div>
+          <button
+            className="delete-btn"
+            onClick={() => isEditing ? setEditingId(null) : startEdit(r)}
+            style={{ color: isEditing ? '#94a3b8' : 'var(--primary)', fontSize: '12px', fontWeight: 600 }}
+          >
+            {isEditing ? '閉じる' : '編集'}
+          </button>
+        </div>
+
+        {/* インライン編集フォーム */}
+        {isEditing && (
+          <div style={{
+            background: '#f8fafc', borderRadius: '12px',
+            padding: '12px', marginTop: '4px',
+            border: '1px solid rgba(59,130,246,0.2)',
+          }}>
+            <div className="input-row">
+              <div className="input-group">
+                <label>日付</label>
+                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="input-group" style={{ marginBottom: '8px' }}>
+              <label>種目</label>
+              <select value={editExercise} onChange={e => setEditExercise(e.target.value)}>
+                {EXERCISE_GROUPS.map(g => (
+                  <optgroup key={g.group} label={g.group}>
+                    {g.items.map(item => (
+                      <option key={item.value} value={item.value}>{item.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label>重量(kg)</label>
+                <input type="number" step="0.5" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>rep</label>
+                <input type="number" value={editReps} onChange={e => setEditReps(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>set</label>
+                <input type="number" value={editSets} onChange={e => setEditSets(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                保存
+              </button>
+              <button onClick={() => del(r.id)} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                削除
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="record-panel active">
@@ -362,19 +501,17 @@ function WeightTab() {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
         </div>
-        <div className="input-row">
-          <div className="input-group" style={{ minWidth: '100%' }}>
-            <label>種目</label>
-            <select value={exerciseName} onChange={e => setExerciseName(e.target.value)}>
-              {EXERCISE_GROUPS.map(g => (
-                <optgroup key={g.group} label={g.group}>
-                  {g.items.map(item => (
-                    <option key={item.value} value={item.value}>{item.label}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
+        <div className="input-group" style={{ marginBottom: '8px' }}>
+          <label>種目</label>
+          <select value={exerciseName} onChange={e => setExerciseName(e.target.value)}>
+            {EXERCISE_GROUPS.map(g => (
+              <optgroup key={g.group} label={g.group}>
+                {g.items.map(item => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
         <div className="input-row">
           <div className="input-group">
@@ -382,11 +519,11 @@ function WeightTab() {
             <input type="number" step="0.5" placeholder="60" value={weight} onChange={e => setWeight(e.target.value)} />
           </div>
           <div className="input-group">
-            <label>レップ数</label>
+            <label>rep数</label>
             <input type="number" placeholder="8" value={reps} onChange={e => setReps(e.target.value)} />
           </div>
           <div className="input-group">
-            <label>セット数</label>
+            <label>set数</label>
             <input type="number" placeholder="4" value={sets} onChange={e => setSets(e.target.value)} />
           </div>
         </div>
@@ -397,33 +534,14 @@ function WeightTab() {
 
       <div className="rec-card">
         <div className="rec-card-title">記録一覧</div>
-        <div className="input-group" style={{ marginBottom: '10px' }}>
+        <div className="input-group" style={{ marginBottom: '12px' }}>
           <label>種目で絞り込み</label>
-          <select value={filterEx} onChange={e => setFilterEx(e.target.value)}>
+          <select value={filterEx} onChange={e => { setFilterEx(e.target.value); setEditingId(null); }}>
             <option value="">すべて</option>
             {EXERCISES.map(ex => <option key={ex} value={ex}>{ex}</option>)}
           </select>
         </div>
-        <div className="record-list">
-          {filtered.map(r => {
-            const isPB = pbMap[r.exercise_name] === r.weight;
-            return (
-              <div key={r.id} className={`record-item${isPB ? ' pb' : ''}`}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '13px' }}>
-                    {r.exercise_name}
-                    {isPB && <span className="pb-badge">🏆 PB</span>}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '2px' }}>
-                    {r.date} ／ {r.weight}kg × {r.reps}rep × {r.sets}set
-                  </div>
-                </div>
-                <button className="delete-btn" onClick={() => del(r.id)}>削除</button>
-              </div>
-            );
-          })}
-          {filtered.length === 0 && <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>}
-        </div>
+        <div className="record-list">{renderList()}</div>
       </div>
     </div>
   );
