@@ -952,6 +952,11 @@ function CheckinTab() {
   const [weight, setWeight] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editWeek, setEditWeek] = useState('');
+  const [editDays, setEditDays] = useState<Set<string>>(new Set());
+  const [editWeight, setEditWeight] = useState('');
+  const [editMemo, setEditMemo] = useState('');
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -990,7 +995,38 @@ function CheckinTab() {
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return;
     await supabase.from('checkins').delete().eq('id', id);
+    setEditingId(null);
     load();
+  };
+
+  const startEdit = (r: CheckinRecord) => {
+    setEditingId(r.id);
+    setEditWeek(r.week);
+    setEditDays(new Set(r.days || []));
+    setEditWeight(r.weight != null ? String(r.weight) : '');
+    setEditMemo(r.memo || '');
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const { error } = await supabase.from('checkins').update({
+      week: editWeek,
+      days: Array.from(editDays),
+      weight: editWeight ? parseFloat(editWeight) : null,
+      memo: editMemo,
+    }).eq('id', editingId);
+    if (error) { alert('エラー: ' + error.message); return; }
+    showToast('更新しました！');
+    setEditingId(null);
+    load();
+  };
+
+  const toggleEditDay = (day: string) => {
+    setEditDays(prev => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day); else next.add(day);
+      return next;
+    });
   };
 
   // Stats
@@ -1112,19 +1148,70 @@ function CheckinTab() {
       <div className="rec-card">
         <div className="rec-card-title">週間記録</div>
         <div className="record-list">
-          {records.map(r => (
-            <div key={r.id} className="record-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontWeight: 700 }}>{r.week}</span>
-                <button className="delete-btn" onClick={() => del(r.id)}>削除</button>
+          {records.map(r => {
+            const isEditing = editingId === r.id;
+            return (
+              <div key={r.id} style={{ marginBottom: '8px' }}>
+                <div className="record-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontWeight: 700 }}>{r.week}</span>
+                    <button
+                      className="delete-btn"
+                      onClick={() => isEditing ? setEditingId(null) : startEdit(r)}
+                      style={{ color: isEditing ? '#94a3b8' : 'var(--primary)', fontSize: '12px', fontWeight: 600 }}
+                    >
+                      {isEditing ? '閉じる' : '編集'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
+                    {r.days?.join(' ')} ／ {r.days?.length || 0}日
+                    {r.weight != null && ` ／ 体重 ${r.weight}kg`}
+                    {r.memo && ` ／ ${r.memo}`}
+                  </div>
+                </div>
+
+                {isEditing && (
+                  <div style={{
+                    background: '#f8fafc', borderRadius: '12px', padding: '12px',
+                    marginTop: '4px', border: '1px solid rgba(59,130,246,0.2)',
+                  }}>
+                    <div className="input-group" style={{ marginBottom: '8px' }}>
+                      <label>日付</label>
+                      <MondayDatePicker value={editWeek} onChange={setEditWeek} />
+                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '6px' }}>トレーニング実施日</div>
+                    <div className="checkin-days" style={{ marginBottom: '10px' }}>
+                      {DAY_LABELS.map(d => (
+                        <div
+                          key={d}
+                          className={`checkin-day${editDays.has(d) ? ' selected' : ''}`}
+                          onClick={() => toggleEditDay(d)}
+                        >{d}</div>
+                      ))}
+                    </div>
+                    <div className="input-row">
+                      <div className="input-group">
+                        <label>体重(kg)</label>
+                        <input type="number" step="0.1" placeholder="75.0" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+                      </div>
+                      <div className="input-group">
+                        <label>メモ</label>
+                        <input type="text" placeholder="任意" value={editMemo} onChange={e => setEditMemo(e.target.value)} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                      <button onClick={() => del(r.id)} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        削除
+                      </button>
+                      <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
-                {r.days?.join(' ')} ／ {r.days?.length || 0}日
-                {r.weight != null && ` ／ 体重 ${r.weight}kg`}
-                {r.memo && ` ／ ${r.memo}`}
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {records.length === 0 && <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>}
         </div>
       </div>
