@@ -19,10 +19,10 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 type SubTab = 'size' | 'weight' | 'photo' | 'checkin';
 
 const SUB_TABS: { id: SubTab; icon: string; label: string }[] = [
-  { id: 'size', icon: '📏', label: 'サイズ' },
   { id: 'weight', icon: '🏋️', label: '重量' },
-  { id: 'photo', icon: '📸', label: '写真' },
   { id: 'checkin', icon: '📅', label: '出席' },
+  { id: 'size', icon: '📏', label: 'サイズ' },
+  { id: 'photo', icon: '📸', label: '写真' },
 ];
 
 const EXERCISE_GROUPS = [
@@ -70,7 +70,7 @@ const EXERCISE_GROUPS = [
   {
     group: '🤸 その他',
     items: [
-      { label: 'ディップス（自重）', value: 'ディップス（自重）' },
+      { label: '[腕] ディップス（自重）', value: 'ディップス（自重）' },
       { label: '[腹筋] レッグレイズ', value: 'レッグレイズ' },
       { label: '[腹筋] プランク', value: 'プランク' },
     ],
