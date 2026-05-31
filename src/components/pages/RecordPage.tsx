@@ -71,6 +71,8 @@ const EXERCISE_GROUPS = [
     group: '🤸 その他',
     items: [
       { label: 'ディップス（自重）', value: 'ディップス（自重）' },
+      { label: '[腹筋] レッグレイズ', value: 'レッグレイズ' },
+      { label: '[腹筋] プランク', value: 'プランク' },
     ],
   },
 ];
