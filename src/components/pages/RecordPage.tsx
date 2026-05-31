@@ -431,6 +431,13 @@ function WeightTab() {
 
 // ── 写真記録 ────────────────────────────────────────────────────────────────
 const ANGLES = ['正面', '横（左）', '横（右）', '背中'] as const;
+
+const ANGLE_PATH: Record<string, string> = {
+  '正面': 'front',
+  '横（左）': 'left',
+  '横（右）': 'right',
+  '背中': 'back',
+};
 type Angle = typeof ANGLES[number];
 
 interface PhotoRecord {
@@ -487,7 +494,7 @@ function PhotoTab() {
     setUploading(true);
     try {
       const blob = await resizeImage(file);
-      const path = `${date}-${angle}-${Date.now()}.jpg`;
+      const path = `${date}-${ANGLE_PATH[angle] ?? 'other'}-${Date.now()}.jpg`;
       const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
       if (upErr) { alert('アップロードエラー: ' + upErr.message); return; }
       const { error: dbErr } = await supabase.from('photos').insert({ date, memo, storage_path: path, angle });
