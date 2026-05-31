@@ -478,11 +478,11 @@ function WeightTab() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-              <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                保存
-              </button>
               <button onClick={() => del(r.id)} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
                 削除
+              </button>
+              <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                保存
               </button>
             </div>
           </div>
