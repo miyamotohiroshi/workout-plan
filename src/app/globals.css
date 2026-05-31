@@ -12,6 +12,10 @@
   --radius: 16px;
 }
 
+/* ===== PAGE TABS ===== */
+.page { display: none; }
+.page.active { display: block; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
