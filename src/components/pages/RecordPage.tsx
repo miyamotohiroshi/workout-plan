@@ -433,7 +433,7 @@ function WeightTab() {
               <span style={{
                 display: 'inline-block', minWidth: '2.5em',
                 fontSize: '11px', fontWeight: 700,
-                color: 'var(--primary)',
+                color: 'var(--text-sub)',
               }}>
                 {EXERCISE_PART_MAP[r.exercise_name] ?? ''}
               </span>
