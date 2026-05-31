@@ -196,6 +196,8 @@ function SizeTab() {
             <label>肩幅(cm)</label>
             <input type="number" step="0.1" placeholder="48" value={shoulder} onChange={e => setShoulder(e.target.value)} />
           </div>
+        </div>
+        <div className="input-row">
           <div className="input-group">
             <label>腕囲(cm)</label>
             <input type="number" step="0.1" placeholder="35" value={arm} onChange={e => setArm(e.target.value)} />
