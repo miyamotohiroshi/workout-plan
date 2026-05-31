@@ -1,8 +1,15 @@
 'use client';
 
+import ProteinTracker from '@/components/pages/ProteinTracker';
+
 export default function DietPage() {
   return (
     <div className="container">
+      <div className="section">
+        <div className="section-title"><span>タンパク質トラッカー</span></div>
+        <ProteinTracker />
+      </div>
+
       <div className="section">
         <div className="section-title"><span>食事管理</span></div>
 

@@ -161,7 +161,21 @@ function SizeTab() {
     if (data) setRecords(data as BodyRecord[]);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialRecords() {
+      const { data } = await supabase
+        .from('body_records')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (!cancelled && data) setRecords(data as BodyRecord[]);
+    }
+
+    loadInitialRecords();
+    return () => { cancelled = true; };
+  }, []);
 
   const save = async () => {
     if (!date) return;
@@ -332,7 +346,21 @@ function WeightTab() {
     if (data) setRecords(data as ExerciseRecord[]);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialRecords() {
+      const { data } = await supabase
+        .from('exercise_records')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (!cancelled && data) setRecords(data as ExerciseRecord[]);
+    }
+
+    loadInitialRecords();
+    return () => { cancelled = true; };
+  }, []);
 
   const save = async () => {
     if (!date || !weight || !reps || !sets) { alert('全項目を入力してください'); return; }
@@ -605,7 +633,21 @@ function PhotoTab() {
     if (data) setPhotos(data as PhotoRecord[]);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialPhotos() {
+      const { data } = await supabase
+        .from('photos')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (!cancelled && data) setPhotos(data as PhotoRecord[]);
+    }
+
+    loadInitialPhotos();
+    return () => { cancelled = true; };
+  }, []);
 
   const resizeImage = (file: File, maxWidth = 800): Promise<Blob> => {
     return new Promise((resolve, reject) => {
@@ -966,7 +1008,21 @@ function CheckinTab() {
     if (data) setRecords(data as CheckinRecord[]);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadInitialRecords() {
+      const { data } = await supabase
+        .from('checkins')
+        .select('*')
+        .order('week', { ascending: false });
+
+      if (!cancelled && data) setRecords(data as CheckinRecord[]);
+    }
+
+    loadInitialRecords();
+    return () => { cancelled = true; };
+  }, []);
 
   const toggleDay = (day: string) => {
     setSelectedDays(prev => {
