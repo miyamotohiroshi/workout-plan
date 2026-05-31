@@ -851,6 +851,100 @@ interface CheckinRecord {
   memo: string;
 }
 
+// 月曜始まりカスタムカレンダーピッカー
+function MondayDatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(value ? new Date(value).getFullYear() : today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(value ? new Date(value).getMonth() : today.getMonth());
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const calStart = (firstDay + 6) % 7; // Mon=0
+  const cells: (number | null)[] = Array(calStart).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const monthLabel = `${viewYear}年${viewMonth + 1}月`;
+  const todayStr2 = today.toISOString().slice(0, 10);
+
+  const select = (d: number) => {
+    const m = String(viewMonth + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    onChange(`${viewYear}-${m}-${dd}`);
+    setOpen(false);
+  };
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '10px 12px', borderRadius: '10px',
+          border: '1.5px solid #e2e8f0', background: '#fff',
+          fontSize: '14px', color: 'var(--text)', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}
+      >
+        <span>{value || '日付を選択'}</span>
+        <span style={{ fontSize: '16px' }}>📅</span>
+      </div>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+          background: '#fff', borderRadius: '14px', marginTop: '4px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          border: '1px solid #e2e8f0', padding: '12px',
+        }}>
+          {/* ヘッダー */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px' }}>‹</button>
+            <span style={{ fontWeight: 700, fontSize: '14px' }}>{monthLabel}</span>
+            <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px' }}>›</button>
+          </div>
+          {/* 曜日ヘッダー */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px', marginBottom: '4px' }}>
+            {['月','火','水','木','金','土','日'].map(d => (
+              <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 700, color: 'var(--text-sub)', padding: '2px 0' }}>{d}</div>
+            ))}
+          </div>
+          {/* 日付グリッド */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px' }}>
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} />;
+              const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+              const isSelected = dateStr === value;
+              const isToday = dateStr === todayStr2;
+              return (
+                <div
+                  key={i}
+                  onClick={() => select(d)}
+                  style={{
+                    textAlign: 'center', padding: '6px 2px', borderRadius: '8px',
+                    fontSize: '13px', fontWeight: isSelected ? 700 : 400,
+                    cursor: 'pointer',
+                    background: isSelected ? 'linear-gradient(135deg,#2563eb,#0ea5e9)' : 'transparent',
+                    color: isSelected ? '#fff' : isToday ? 'var(--primary)' : 'var(--text)',
+                    border: isToday && !isSelected ? '1.5px solid var(--primary)' : '1.5px solid transparent',
+                  }}
+                >
+                  {d}
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            style={{ width: '100%', marginTop: '10px', padding: '8px', background: '#f1f5f9', border: 'none', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-sub)' }}
+          >閉じる</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CheckinTab() {
   const [records, setRecords] = useState<CheckinRecord[]>([]);
   const [week, setWeek] = useState(todayStr());
@@ -948,7 +1042,7 @@ function CheckinTab() {
         <div className="input-row">
           <div className="input-group">
             <label>週（日付）</label>
-            <input type="date" value={week} onChange={e => setWeek(e.target.value)} />
+            <MondayDatePicker value={week} onChange={setWeek} />
           </div>
           <div className="input-group">
             <label>体重(kg)</label>
