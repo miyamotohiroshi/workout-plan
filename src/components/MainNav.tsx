@@ -8,66 +8,68 @@ interface Props {
 }
 
 const MenuIcon = ({ active }: { active: boolean }) => (
-  <svg width="26" height="26" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="32" cy="14" r="8" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="16" y="26" width="32" height="9" rx="4.5" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="11" y="28" width="5" height="18" rx="2.5" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="48" y="28" width="5" height="18" rx="2.5" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="24" y="35" width="16" height="21" rx="5" fill={active ? '#2F7DF6' : '#94a3b8'}/>
+  <svg width="31" height="31" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="28" width="28" height="8" rx="2" fill={active ? '#2F7DF6' : '#94a3b8'} />
+    <rect x="10" y="20" width="8" height="24" rx="4" fill={active ? '#2F7DF6' : '#94a3b8'} />
+    <rect x="46" y="20" width="8" height="24" rx="4" fill={active ? '#2F7DF6' : '#94a3b8'} />
+    <rect x="5" y="26" width="6" height="12" rx="3" fill={active ? '#2F7DF6' : '#94a3b8'} />
+    <rect x="53" y="26" width="6" height="12" rx="3" fill={active ? '#2F7DF6' : '#94a3b8'} />
   </svg>
 );
 
 const GoalIcon = ({ active }: { active: boolean }) => (
-  <svg width="26" height="26" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <rect x="20" y="10" width="4" height="42" rx="2" fill={active ? '#4B5563' : '#94a3b8'}/>
-    <path d="M24 14C32 10 40 18 48 14V34C40 38 32 30 24 34V14Z" fill={active ? '#FF4B3E' : '#94a3b8'}/>
-    <path d="M14 52H34C37 52 40 55 40 58H8C8 55 11 52 14 52Z" fill={active ? '#FF4B3E' : '#94a3b8'}/>
+  <svg width="31" height="31" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="15" y="10" width="5" height="46" rx="2.5" fill={active ? '#4B5563' : '#94a3b8'} />
+    <circle cx="17.5" cy="9" r="5" fill={active ? '#4B5563' : '#94a3b8'} />
+    <path d="M20 15C30 10 39 20 49 15V38C39 43 30 33 20 38V15Z" fill={active ? '#FF3B30' : '#94a3b8'} />
   </svg>
 );
 
 const DietIcon = ({ active }: { active: boolean }) => (
-  <svg width="31" height="31" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 34H52C50 47 42 54 32 54C22 54 14 47 12 34Z" fill={active ? '#D8D2C8' : '#cbd5e1'}/>
-    <path d="M17 34C19 25 27 20 33 25C38 17 49 21 50 34H17Z" fill={active ? '#69BE3B' : '#94a3b8'}/>
-    <circle cx="27" cy="33" r="6" fill={active ? '#FF4B3E' : '#94a3b8'}/>
-    <circle cx="39" cy="32" r="6" fill={active ? '#FF4B3E' : '#94a3b8'}/>
-    <circle cx="27" cy="33" r="2" fill="#FFFFFF"/>
-    <circle cx="39" cy="32" r="2" fill="#FFFFFF"/>
-    <path d="M24 25L21 18" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M38 24L41 17" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M46 29C49 25 52 24 55 25" stroke={active ? '#4DAE35' : '#94a3b8'} strokeWidth="5" strokeLinecap="round"/>
+  <svg width="31" height="31" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M15 30C16 18 24 11 32 11C40 11 48 18 49 30H15Z" fill={active ? '#FFFFFF' : '#f8fafc'} stroke={active ? '#D8DCE3' : '#cbd5e1'} strokeWidth="4" />
+    <circle cx="24" cy="25" r="2.2" fill={active ? '#D8DCE3' : '#94a3b8'} />
+    <circle cx="32" cy="21" r="2.2" fill={active ? '#D8DCE3' : '#94a3b8'} />
+    <circle cx="40" cy="25" r="2.2" fill={active ? '#D8DCE3' : '#94a3b8'} />
+    <circle cx="29" cy="31" r="2.2" fill={active ? '#D8DCE3' : '#94a3b8'} />
+    <circle cx="37" cy="32" r="2.2" fill={active ? '#D8DCE3' : '#94a3b8'} />
+    <path d="M12 31H52C50 45 42 53 32 53C22 53 14 45 12 31Z" fill={active ? '#FFD35A' : '#cbd5e1'} />
+    <path d="M20 54H44V58C44 60 42 61 40 61H24C22 61 20 60 20 58V54Z" fill={active ? '#F5A623' : '#94a3b8'} />
   </svg>
 );
 
 const SuppIcon = ({ active }: { active: boolean }) => (
-  <svg width="31" height="31" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <rect x="23" y="18" width="18" height="36" rx="4" fill={active ? '#D9DDE3' : '#cbd5e1'}/>
-    <rect x="20" y="13" width="24" height="8" rx="3" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="24" y="9" width="6" height="6" rx="2" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <rect x="34" y="9" width="6" height="6" rx="2" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <path d="M34 27L25 40H32L29 51L40 36H33L34 27Z" fill={active ? '#2F7DF6' : '#94a3b8'}/>
+  <svg width="31" height="31" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="22" y="16" width="20" height="38" rx="4" fill={active ? '#F8FAFC' : '#f8fafc'} stroke={active ? '#8E6BE8' : '#94a3b8'} strokeWidth="4" />
+    <rect x="17" y="20" width="30" height="9" rx="3" fill={active ? '#8E6BE8' : '#94a3b8'} />
+    <rect x="21" y="8" width="22" height="7" rx="2" fill={active ? '#8E6BE8' : '#94a3b8'} />
+    <path d="M42 17C51 17 55 23 55 30" stroke={active ? '#8E6BE8' : '#94a3b8'} strokeWidth="5" strokeLinecap="round" />
+    <rect x="28" y="35" width="12" height="4" rx="2" fill={active ? '#8E6BE8' : '#94a3b8'} />
+    <rect x="28" y="43" width="9" height="4" rx="2" fill={active ? '#8E6BE8' : '#94a3b8'} />
+    <rect x="28" y="51" width="12" height="4" rx="2" fill={active ? '#8E6BE8' : '#94a3b8'} />
   </svg>
 );
 
 const RecordIcon = ({ active }: { active: boolean }) => (
-  <svg width="26" height="26" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <rect x="15" y="11" width="34" height="44" rx="6" fill="#F8FAFC" stroke={active ? '#C9CED6' : '#cbd5e1'} strokeWidth="3"/>
-    <rect x="22" y="7" width="4" height="11" rx="2" fill={active ? '#6B7280' : '#94a3b8'}/>
-    <rect x="31" y="7" width="4" height="11" rx="2" fill={active ? '#6B7280' : '#94a3b8'}/>
-    <rect x="40" y="7" width="4" height="11" rx="2" fill={active ? '#6B7280' : '#94a3b8'}/>
-    <rect x="23" y="25" width="18" height="4" rx="2" fill={active ? '#C9CED6' : '#e2e8f0'}/>
-    <rect x="23" y="36" width="18" height="4" rx="2" fill={active ? '#C9CED6' : '#e2e8f0'}/>
-    <circle cx="48" cy="46" r="12" fill={active ? '#2F7DF6' : '#94a3b8'}/>
-    <path d="M48 39V53" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round"/>
-    <path d="M41 46H55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round"/>
+  <svg width="31" height="31" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="13" y="10" width="36" height="46" rx="7" fill="#F8FAFC" stroke={active ? '#4B5563' : '#94a3b8'} strokeWidth="4" />
+    <rect x="20" y="6" width="5" height="13" rx="2.5" fill={active ? '#4B5563' : '#94a3b8'} />
+    <rect x="31" y="6" width="5" height="13" rx="2.5" fill={active ? '#4B5563' : '#94a3b8'} />
+    <rect x="42" y="6" width="5" height="13" rx="2.5" fill={active ? '#4B5563' : '#94a3b8'} />
+    <rect x="23" y="26" width="20" height="4" rx="2" fill={active ? '#A8B0BC' : '#cbd5e1'} />
+    <rect x="23" y="37" width="18" height="4" rx="2" fill={active ? '#A8B0BC' : '#cbd5e1'} />
+    <rect x="23" y="48" width="14" height="4" rx="2" fill={active ? '#A8B0BC' : '#cbd5e1'} />
+    <circle cx="49" cy="47" r="13" fill={active ? '#4CAF50' : '#94a3b8'} />
+    <path d="M49 39V55" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
+    <path d="M41 47H57" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
   </svg>
 );
 
 const TABS: { id: Tab; label: string; Icon: React.FC<{ active: boolean }> }[] = [
   { id: 'menu',   label: 'メニュー', Icon: MenuIcon },
   { id: 'goal',   label: '目標',     Icon: GoalIcon },
-  { id: 'diet',   label: '食事',     Icon: DietIcon },
   { id: 'supp',   label: 'サプリ',   Icon: SuppIcon },
+  { id: 'diet',   label: '食事',     Icon: DietIcon },
   { id: 'record', label: '記録',     Icon: RecordIcon },
 ];
 
@@ -83,8 +85,10 @@ export default function MainNav({ activeTab, onTabChange }: Props) {
               className={`main-tab${active ? ' active' : ''}`}
               onClick={() => onTabChange(tab.id)}
             >
-              <tab.Icon active={active} />
-              {tab.label}
+              <span className="main-tab-icon">
+                <tab.Icon active={active} />
+              </span>
+              <span className="main-tab-label">{tab.label}</span>
             </button>
           );
         })}

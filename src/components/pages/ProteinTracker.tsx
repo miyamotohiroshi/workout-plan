@@ -61,6 +61,7 @@ export default function ProteinTracker() {
   const [date, setDate] = useState(todayStr());
   const [meals, setMeals] = useState<MealsData>(emptyMeals);
   const [openMeal, setOpenMeal] = useState<MealKey>('breakfast');
+  const [saveError, setSaveError] = useState('');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<PendingSave | null>(null);
   const dateRef = useRef(date);
@@ -100,7 +101,13 @@ export default function ProteinTracker() {
       { date: saveDate, ...saveMeals },
       { onConflict: 'date' }
     );
-    if (error) console.error('Protein log save error:', error);
+    if (error) {
+      console.error('Protein log save error:', error);
+      setSaveError(`保存に失敗しました: ${error.message}`);
+      return false;
+    }
+    setSaveError('');
+    return true;
   };
 
   const debouncedSave = (newMeals: MealsData, saveDate: string) => {
@@ -150,7 +157,8 @@ export default function ProteinTracker() {
     }
     if (pending) {
       pendingSaveRef.current = null;
-      await saveNow(pending.meals, pending.date);
+      const saved = await saveNow(pending.meals, pending.date);
+      if (!saved) return;
     }
     const nextDate = addDays(dateRef.current, delta);
     dateRef.current = nextDate;
@@ -167,6 +175,12 @@ export default function ProteinTracker() {
         </span>
         <button onClick={() => changeDate(1)} disabled={date === todayStr()} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', padding: '4px 8px', color: date === todayStr() ? '#e2e8f0' : 'var(--text-sub)' }}>›</button>
       </div>
+
+      {saveError && (
+        <div style={{ marginBottom: '10px', padding: '10px 12px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '12px', fontWeight: 700 }}>
+          {saveError}
+        </div>
+      )}
 
       {/* 合計プログレスバー */}
       <div style={{ background: 'var(--card-bg)', backdropFilter: 'blur(12px)', borderRadius: 'var(--radius)', padding: '16px', marginBottom: '10px', border: '1px solid rgba(255,255,255,.7)', boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
