@@ -83,7 +83,7 @@ body::before {
   border-bottom: 2.5px solid transparent;
   transition: all .2s; -webkit-tap-highlight-color: transparent;
 }
-.main-tab .tab-icon { font-size: 18px; }
+.main-tab svg { display: block; }
 .main-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
 
 /* ===== PAGE SECTIONS ===== */
