@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Hero from '@/components/Hero';
 import MainNav from '@/components/MainNav';
 import MenuPage from '@/components/pages/MenuPage';
@@ -13,6 +13,14 @@ type Tab = 'menu' | 'goal' | 'diet' | 'supp' | 'record';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('menu');
+  const activeTabRef = useRef<Tab>('menu');
+  const scrollPositionsRef = useRef<Partial<Record<Tab, number>>>({});
+
+  const getNavPinnedScrollY = () => {
+    const nav = document.querySelector('.main-nav');
+    if (!nav) return 0;
+    return nav.getBoundingClientRect().top + window.scrollY;
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,8 +34,17 @@ export default function Home() {
   }, []);
 
   const handleTabChange = (tab: Tab) => {
+    if (tab === activeTabRef.current) return;
+
+    scrollPositionsRef.current[activeTabRef.current] = window.scrollY;
+    const fallbackY = getNavPinnedScrollY();
+    const nextY = scrollPositionsRef.current[tab] ?? fallbackY;
+
+    activeTabRef.current = tab;
     setActiveTab(tab);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: nextY, behavior: 'auto' });
+    });
   };
 
   return (
