@@ -1,12 +1,36 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { PATTERN_A, PATTERN_B } from '@/lib/trainingData';
 import DayTabs from '@/components/training/DayTabs';
 import ExerciseCard from '@/components/training/ExerciseCard';
 import { TrainingPattern, DaySchedule } from '@/types';
 
-function DayPanel({ daySchedule }: { daySchedule: DaySchedule }) {
+const BODY_PART_IMAGES: Record<string, string> = {
+  'a-mon': '/bodyParts/shoulder.jpg',
+  'a-tue': '/bodyParts/legs__machine.jpg',
+  'a-thu': '/bodyParts/back.jpg',
+  'a-fri': '/bodyParts/chest.jpg',
+  'b-mon': '/bodyParts/shoulder.jpg',
+  'b-thu': '/bodyParts/legs.jpg',
+  'b-fri': '/bodyParts/back-chest.jpg',
+  'b-sun': '/bodyParts/sholder-legs__machine.jpg',
+};
+
+function getBodyPartTitle(title: string) {
+  return title.replace(/^[月火水木金土日]曜：/, '');
+}
+
+function getBodyPartVolume(volume: string) {
+  const [count, duration] = volume.split('／').map(part => part.trim());
+  return {
+    count: count || '',
+    duration: (duration || '').replace(/約(\d+)〜(\d+)分/, '約$1分〜$2分'),
+  };
+}
+
+function DayPanel({ daySchedule, patternId }: { daySchedule: DaySchedule; patternId: string }) {
   if (daySchedule.isRest) {
     return (
       <div className="training-panel active">
@@ -20,6 +44,9 @@ function DayPanel({ daySchedule }: { daySchedule: DaySchedule }) {
   }
 
   const gymType = daySchedule.gymType;
+  const imageSrc = BODY_PART_IMAGES[`${patternId}-${daySchedule.label}`];
+  const bodyPartTitle = getBodyPartTitle(daySchedule.headerTitle ?? daySchedule.muscleGroup);
+  const bodyPartVolume = getBodyPartVolume(daySchedule.headerVolume ?? '');
   const badgeStyle =
     gymType === 'machine'
       ? { background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)' }
@@ -29,18 +56,45 @@ function DayPanel({ daySchedule }: { daySchedule: DaySchedule }) {
 
   return (
     <div className="training-panel active">
-      <div className="day-header">
-        <div className="day-badge" style={badgeStyle}>
-          {daySchedule.headerIcon}
-        </div>
-        <div className="day-info">
-          <div className={`gym-tag${gymType === 'machine' ? ' machine' : ''}`}>
-            {gymType === 'machine' ? '★ マシンジム' : '🏠 フリーウェイト'}
+      {imageSrc ? (
+        <div className="body-part-hero">
+          <div className="body-part-image" style={{ position: 'relative' }}>
+            <Image
+              src={imageSrc}
+              alt={bodyPartTitle}
+              fill
+              sizes="180px"
+              style={{ objectFit: 'cover', objectPosition: 'center' }}
+              priority={patternId === 'a' && daySchedule.label === 'mon'}
+            />
+            <div className="body-part-image-fade" />
           </div>
-          <h3>{daySchedule.headerTitle}</h3>
-          <div className="volume">{daySchedule.headerVolume}</div>
+          <div className="body-part-copy">
+            <div className="body-part-kicker">
+              {gymType === 'machine' ? 'マシンジム' : 'フリーウェイト'}
+            </div>
+            <h3>{bodyPartTitle}</h3>
+            <div className="body-part-volume">
+              <span>{bodyPartVolume.count}</span>
+              <i />
+              <span>{bodyPartVolume.duration}</span>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="day-header">
+          <div className="day-badge" style={badgeStyle}>
+            {daySchedule.headerIcon}
+          </div>
+          <div className="day-info">
+            <div className={`gym-tag${gymType === 'machine' ? ' machine' : ''}`}>
+              {gymType === 'machine' ? '★ マシンジム' : '🏠 フリーウェイト'}
+            </div>
+            <h3>{daySchedule.headerTitle}</h3>
+            <div className="volume">{daySchedule.headerVolume}</div>
+          </div>
+        </div>
+      )}
       {daySchedule.exercises.map((ex, i) => (
         <ExerciseCard key={i} exercise={ex} />
       ))}
@@ -59,7 +113,7 @@ function PatternSection({ pattern }: { pattern: TrainingPattern }) {
         activeDayIndex={activeDayIndex}
         onDayChange={setActiveDayIndex}
       />
-      <DayPanel daySchedule={activeDay} />
+      <DayPanel daySchedule={activeDay} patternId={pattern.id} />
     </div>
   );
 }

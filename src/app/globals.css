@@ -275,6 +275,30 @@ body::before {
 .day-info .gym-tag.machine{background:rgba(139,92,246,.1);color:#7c3aed;}
 .day-info h3{font-size:16px;font-weight:800;}
 .day-info .volume{font-size:12px;color:var(--text-sub);margin-top:2px;}
+.body-part-hero {
+  position:relative;display:flex;min-height:112px;margin-bottom:10px;
+  background:rgba(255,255,255,.9);border:1px solid rgba(226,232,240,.9);
+  border-radius:8px;box-shadow:none;overflow:hidden;
+}
+.body-part-image { position:relative;width:180px;max-width:46%;min-height:112px;background:#e2e8f0;filter:grayscale(1);flex-shrink:0;overflow:visible; }
+.body-part-image::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to right, #fff0 -30%, #fff 85%);
+  z-index:1;
+}
+.body-part-image-fade {
+  position:absolute;top:0;bottom:0;right:-72px;width:120px;z-index:2;pointer-events:none;
+  background:linear-gradient(to right,rgba(255,255,255,0) 0%,rgba(255,255,255,.72) 45%,#fff 100%);
+}
+.body-part-copy {
+  display:flex;flex-direction:column;justify-content:center;
+  position:absolute;right:0;width:66%;height:100%;
+  padding:18px 20px 18px 0;background:none;margin-left:-18px;z-index:3;flex:1;min-width:0;
+}
+.body-part-kicker { font-size:11px;font-weight:800;color:var(--primary);margin-bottom:6px; }
+.body-part-copy h3 { font-size:18px;font-weight:900;line-height:1.2;color:#0f172a;letter-spacing:0;margin-bottom:13px; }
+.body-part-volume { display:flex;align-items:center;gap:11px;font-size:12px;color:#9ca3af;font-weight:600; }
+.body-part-volume i { width:1px;height:16px;background:#d1d5db;display:block;flex-shrink:0; }
 
 .rest-card{background:var(--card-bg);backdrop-filter:blur(12px);border-radius:var(--radius);padding:32px 20px;text-align:center;border:1px solid rgba(255,255,255,.7);box-shadow:0 2px 12px rgba(0,0,0,.06);}
 .rest-card .rest-icon{font-size:40px;margin-bottom:12px;}
