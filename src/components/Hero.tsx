@@ -411,6 +411,8 @@ export default function Hero() {
             >
               {[0, 1, 2].map((slot) => {
                 const image = galleryImages[slot];
+                const canMovePrev = Boolean(image) && slot > 0;
+                const canMoveNext = Boolean(image) && slot < galleryImages.length - 1;
                 return (
                   <div
                     key={image?.path ?? `slot-${slot}`}
@@ -457,16 +459,86 @@ export default function Hero() {
                       {slot + 1}
                     </span>
                     {image ? (
-                      <div
-                        className="settings-gallery-photo"
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          backgroundImage: `url('${image.url}')`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                        }}
-                      />
+                      <>
+                        <div
+                          className="settings-gallery-photo"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            backgroundImage: `url('${image.url}')`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }}
+                        />
+                        <div
+                          className="settings-gallery-controls"
+                          style={{
+                            position: 'absolute',
+                            right: 6,
+                            bottom: 6,
+                            zIndex: 3,
+                            display: 'flex',
+                            gap: 4,
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="settings-gallery-move"
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 999,
+                              border: 'none',
+                              background: canMovePrev ? 'rgba(15,23,42,.68)' : 'rgba(148,163,184,.45)',
+                              color: '#fff',
+                              fontSize: 14,
+                              fontWeight: 900,
+                              lineHeight: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: canMovePrev ? 'pointer' : 'not-allowed',
+                              boxShadow: '0 4px 10px rgba(15,23,42,.22)',
+                            }}
+                            disabled={!canMovePrev}
+                            aria-label={`${slot + 1}番目の画像を左へ移動`}
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (canMovePrev) moveGalleryImage(slot, slot - 1);
+                            }}
+                          >
+                            ‹
+                          </button>
+                          <button
+                            type="button"
+                            className="settings-gallery-move"
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 999,
+                              border: 'none',
+                              background: canMoveNext ? 'rgba(15,23,42,.68)' : 'rgba(148,163,184,.45)',
+                              color: '#fff',
+                              fontSize: 14,
+                              fontWeight: 900,
+                              lineHeight: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: canMoveNext ? 'pointer' : 'not-allowed',
+                              boxShadow: '0 4px 10px rgba(15,23,42,.22)',
+                            }}
+                            disabled={!canMoveNext}
+                            aria-label={`${slot + 1}番目の画像を右へ移動`}
+                            onClick={e => {
+                              e.stopPropagation();
+                              if (canMoveNext) moveGalleryImage(slot, slot + 1);
+                            }}
+                          >
+                            ›
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       <div
                         className="settings-gallery-empty"
