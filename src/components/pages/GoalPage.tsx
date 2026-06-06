@@ -1,6 +1,40 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
+const DEFAULT_CURRENT_WEIGHT = 66;
+
+function formatWeight(weight: number) {
+  return Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
+}
+
 export default function GoalPage() {
+  const [currentWeight, setCurrentWeight] = useState(DEFAULT_CURRENT_WEIGHT);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLatestCheckinWeight() {
+      const { data } = await supabase
+        .from('checkins')
+        .select('weight')
+        .not('weight', 'is', null)
+        .order('week', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!cancelled && data?.weight != null) {
+        setCurrentWeight(Number(data.weight));
+      }
+    }
+
+    loadLatestCheckinWeight();
+    return () => { cancelled = true; };
+  }, []);
+
+  const currentWeightLabel = formatWeight(currentWeight);
+
   return (
     <div className="container">
       <div className="section">
@@ -13,7 +47,7 @@ export default function GoalPage() {
           </div>
           <div className="goal-card">
             <div className="label">現在の体重</div>
-            <div className="value">66<span className="unit"> kg</span></div>
+            <div className="value">{currentWeightLabel}<span className="unit"> kg</span></div>
           </div>
           <div className="goal-card">
             <div className="label">摂取カロリー目標</div>
@@ -34,7 +68,7 @@ export default function GoalPage() {
             </div>
             <div className="body-item">
               <div className="bi-label">体重</div>
-              <div className="bi-val">66 kg</div>
+              <div className="bi-val">{currentWeightLabel} kg</div>
             </div>
             <div className="body-item" style={{ gridColumn: '1 / -1' }}>
               <div className="bi-label">身体の特徴</div>

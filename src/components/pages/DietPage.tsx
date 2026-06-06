@@ -1,6 +1,6 @@
 'use client';
 
-import ProteinTracker from '@/components/pages/ProteinTracker';
+import ProteinTracker, { ProteinAchievementCalendar } from '@/components/pages/ProteinTracker';
 
 export default function DietPage() {
   return (
@@ -8,6 +8,10 @@ export default function DietPage() {
       <div className="section">
         <div className="section-title"><span>タンパク質トラッカー</span></div>
         <ProteinTracker />
+      </div>
+
+      <div className="section">
+        <ProteinAchievementCalendar />
       </div>
 
       <div className="section">

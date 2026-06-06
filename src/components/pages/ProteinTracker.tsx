@@ -7,10 +7,19 @@ type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 type MealData = Record<string, number>;
 type MealsData = Record<MealKey, MealData>;
 type PendingSave = { date: string; meals: MealsData };
+type ProteinLogRow = {
+  date: string;
+  breakfast: MealData | null;
+  lunch: MealData | null;
+  dinner: MealData | null;
+  snack: MealData | null;
+};
 
 const PROTEIN_TARGET = 140;
+const PROTEIN_LOG_UPDATED_EVENT = 'protein-log-updated';
 
 const FOODS = [
+  { key: 'protein',       label: 'プロテイン',        unit: '1杯',     protein: 25  },
   { key: 'egg',           label: '卵',               unit: '個',      protein: 6   },
   { key: 'chicken_breast',label: '鶏胸肉・ささみ',    unit: '50g',     protein: 11.5 },
   { key: 'chicken_thigh', label: '鶏もも',            unit: '50g',     protein: 8.5 },
@@ -21,8 +30,8 @@ const FOODS = [
   { key: 'tuna_can',      label: 'ツナ缶',            unit: '1缶',     protein: 18  },
   { key: 'natto',         label: '納豆',              unit: '1パック', protein: 6.6 },
   { key: 'milk',          label: '牛乳・豆乳',        unit: '200ml',   protein: 6.8 },
-  { key: 'protein',       label: 'プロテイン',        unit: '1杯',     protein: 25  },
   { key: 'greek_yogurt',  label: 'ギリシャヨーグルト',unit: '100g',    protein: 10  },
+  { key: 'yogurt',        label: '通常ヨーグルト',    unit: '100g',    protein: 3   },
 ] as const;
 
 const MEALS: { key: MealKey; label: string; icon: string }[] = [
@@ -52,9 +61,120 @@ function addDays(dateStr: string, delta: number) {
   return formatDate(new Date(year, month - 1, day + delta));
 }
 
+function addMonths(date: Date, delta: number) {
+  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
+}
+
 function getMealProtein(data: MealData): number {
   const foodTotal = FOODS.reduce((sum, f) => sum + (data[f.key] ?? 0) * f.protein, 0);
   return Math.round((foodTotal + (data.custom ?? 0)) * 10) / 10;
+}
+
+function getDayProtein(log: ProteinLogRow): number {
+  const meals: MealsData = {
+    breakfast: log.breakfast ?? {},
+    lunch: log.lunch ?? {},
+    dinner: log.dinner ?? {},
+    snack: log.snack ?? {},
+  };
+  return MEALS.reduce((sum, m) => sum + getMealProtein(meals[m.key]), 0);
+}
+
+export function ProteinAchievementCalendar() {
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
+  const [proteinByDate, setProteinByDate] = useState<Record<string, number>>({});
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  const monthStart = formatDate(new Date(year, month, 1));
+  const nextMonthStart = formatDate(new Date(year, month + 1, 1));
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const calStart = (firstDay + 6) % 7;
+  const cells: (number | null)[] = Array(calStart).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMonth() {
+      const { data } = await supabase
+        .from('protein_logs')
+        .select('date, breakfast, lunch, dinner, snack')
+        .gte('date', monthStart)
+        .lt('date', nextMonthStart)
+        .order('date', { ascending: true });
+
+      if (cancelled) return;
+      const totals: Record<string, number> = {};
+      (data as ProteinLogRow[] | null)?.forEach(log => {
+        totals[log.date] = getDayProtein(log);
+      });
+      setProteinByDate(totals);
+    }
+
+    loadMonth();
+    return () => { cancelled = true; };
+  }, [monthStart, nextMonthStart, refreshTick]);
+
+  useEffect(() => {
+    const refresh = () => setRefreshTick(tick => tick + 1);
+    window.addEventListener(PROTEIN_LOG_UPDATED_EVENT, refresh);
+    return () => window.removeEventListener(PROTEIN_LOG_UPDATED_EVENT, refresh);
+  }, []);
+
+  const achievedDays = Object.values(proteinByDate).filter(total => total >= PROTEIN_TARGET).length;
+  const loggedDays = Object.values(proteinByDate).filter(total => total > 0).length;
+
+  return (
+    <div className="protein-calendar-card">
+      <div className="protein-calendar-top">
+        <button className="protein-calendar-nav" onClick={() => setCalendarMonth(prev => addMonths(prev, -1))}>‹</button>
+        <div>
+          <div className="protein-calendar-title">{year}年{String(month + 1).padStart(2, '0')}月</div>
+          <div className="protein-calendar-sub">140g以上の日をハイライト</div>
+        </div>
+        <button className="protein-calendar-nav" onClick={() => setCalendarMonth(prev => addMonths(prev, 1))}>›</button>
+      </div>
+
+      <div className="protein-calendar-stats">
+        <div><strong>{achievedDays}</strong><span>達成日</span></div>
+        <div><strong>{loggedDays}</strong><span>記録日</span></div>
+      </div>
+
+      <div className="protein-calendar-grid">
+        {['月', '火', '水', '木', '金', '土', '日'].map(d => (
+          <div key={d} className="protein-cal-header">{d}</div>
+        ))}
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e${i}`} />;
+          const dateStr = `${monthStart.slice(0, 8)}${String(day).padStart(2, '0')}`;
+          const total = Math.round((proteinByDate[dateStr] ?? 0) * 10) / 10;
+          const achieved = total >= PROTEIN_TARGET;
+          const logged = total > 0;
+          return (
+            <div
+              key={dateStr}
+              className={`protein-cal-day${achieved ? ' achieved' : logged ? ' logged' : ''}`}
+              title={logged ? `${total}g` : undefined}
+            >
+              <span>{day}</span>
+              {logged && <small>{total}g</small>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="protein-calendar-legend">
+        <span><i className="achieved" />140g以上</span>
+        <span><i className="logged" />記録あり</span>
+      </div>
+    </div>
+  );
 }
 
 export default function ProteinTracker() {
@@ -107,6 +227,7 @@ export default function ProteinTracker() {
       return false;
     }
     setSaveError('');
+    window.dispatchEvent(new Event(PROTEIN_LOG_UPDATED_EVENT));
     return true;
   };
 
@@ -239,7 +360,7 @@ export default function ProteinTracker() {
               const qty = meals[m.key][f.key] ?? 0;
               const p = Math.round(qty * f.protein * 10) / 10;
               return (
-                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: qty > 0 ? 'rgba(37,99,235,.05)' : '#f8fafc', borderRadius: '10px', border: qty > 0 ? '1px solid rgba(37,99,235,.15)' : '1px solid transparent' }}>
+                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', marginBottom: f.key === 'protein' ? '14px' : 0, background: qty > 0 ? 'rgba(37,99,235,.05)' : '#f8fafc', borderRadius: '10px', border: qty > 0 ? '1px solid rgba(37,99,235,.15)' : '1px solid transparent' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: qty > 0 ? 700 : 400, color: qty > 0 ? 'var(--text)' : 'var(--text-sub)' }}>{f.label}</div>
                     <div style={{ fontSize: '10px', color: 'var(--text-sub)' }}>{f.unit} = {f.protein}g</div>

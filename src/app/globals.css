@@ -246,6 +246,28 @@ body::before {
 .diet-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
 .diet-icon{font-size:24px;}
 .diet-title{font-size:15px;font-weight:700;}
+
+.protein-calendar-card{background:var(--card-bg);backdrop-filter:blur(12px);border-radius:var(--radius);padding:16px;border:1px solid rgba(255,255,255,.7);box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.protein-calendar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.protein-calendar-nav{width:32px;height:32px;border-radius:10px;border:none;background:#f8fafc;color:var(--text-sub);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.protein-calendar-nav:hover{background:rgba(37,99,235,.08);color:var(--primary);}
+.protein-calendar-title{text-align:center;font-size:14px;font-weight:800;color:var(--text);}
+.protein-calendar-sub{text-align:center;font-size:11px;font-weight:600;color:var(--text-sub);margin-top:2px;}
+.protein-calendar-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.protein-calendar-stats>div{background:#f8fafc;border-radius:10px;padding:10px;text-align:center;}
+.protein-calendar-stats strong{display:block;font-size:20px;line-height:1;color:var(--primary);}
+.protein-calendar-stats span{display:block;font-size:10px;font-weight:700;color:var(--text-sub);margin-top:4px;}
+.protein-calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.protein-cal-header{text-align:center;font-size:10px;font-weight:800;color:var(--text-sub);padding-bottom:2px;}
+.protein-cal-day{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#f8fafc;color:var(--text-sub);font-size:12px;font-weight:800;border:1px solid transparent;min-width:0;}
+.protein-cal-day small{font-size:8px;font-weight:700;line-height:1;color:inherit;}
+.protein-cal-day.logged{background:rgba(37,99,235,.07);border-color:rgba(37,99,235,.14);color:var(--primary);}
+.protein-cal-day.achieved{background:linear-gradient(135deg,#059669,#34d399);border-color:transparent;color:#fff;box-shadow:0 4px 10px rgba(5,150,105,.18);}
+.protein-calendar-legend{display:flex;justify-content:center;gap:14px;margin-top:12px;font-size:11px;font-weight:700;color:var(--text-sub);}
+.protein-calendar-legend span{display:inline-flex;align-items:center;gap:5px;}
+.protein-calendar-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+.protein-calendar-legend i.achieved{background:linear-gradient(135deg,#059669,#34d399);}
+.protein-calendar-legend i.logged{background:rgba(37,99,235,.16);border:1px solid rgba(37,99,235,.24);}
 .macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .macro-item{background:#f8fafc;border-radius:10px;padding:10px 8px;text-align:center;}
 .macro-val{font-size:18px;font-weight:800;color:var(--primary);}

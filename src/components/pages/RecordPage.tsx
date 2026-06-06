@@ -132,10 +132,12 @@ interface BodyRecord {
   shoulder: number | null;
   arm: number | null;
   thigh: number | null;
+  body_fat: number | null;
 }
 
 const METRIC_CONFIG = [
   { key: 'weight' as keyof BodyRecord, label: '体重(kg)', color: '#3b82f6' },
+  { key: 'body_fat' as keyof BodyRecord, label: '体脂肪率(%)', color: '#06b6d4' },
   { key: 'chest' as keyof BodyRecord, label: '胸囲(cm)', color: '#f59e0b' },
   { key: 'shoulder' as keyof BodyRecord, label: '肩幅(cm)', color: '#10b981' },
   { key: 'arm' as keyof BodyRecord, label: '腕囲(cm)', color: '#8b5cf6' },
@@ -146,12 +148,23 @@ function SizeTab() {
   const [records, setRecords] = useState<BodyRecord[]>([]);
   const [date, setDate] = useState(todayStr());
   const [weight, setWeight] = useState('');
+  const [bodyFat, setBodyFat] = useState('');
   const [chest, setChest] = useState('');
   const [shoulder, setShoulder] = useState('');
   const [arm, setArm] = useState('');
   const [thigh, setThigh] = useState('');
   const [saving, setSaving] = useState(false);
   const [activeMetrics, setActiveMetrics] = useState<Set<string>>(new Set(['weight']));
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editBodyFat, setEditBodyFat] = useState('');
+  const [editChest, setEditChest] = useState('');
+  const [editShoulder, setEditShoulder] = useState('');
+  const [editArm, setEditArm] = useState('');
+  const [editThigh, setEditThigh] = useState('');
+
+  const parseOptionalNumber = (value: string) => value ? parseFloat(value) : null;
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -182,22 +195,52 @@ function SizeTab() {
     setSaving(true);
     const { error } = await supabase.from('body_records').insert({
       date,
-      weight: weight ? parseFloat(weight) : null,
-      chest: chest ? parseFloat(chest) : null,
-      shoulder: shoulder ? parseFloat(shoulder) : null,
-      arm: arm ? parseFloat(arm) : null,
-      thigh: thigh ? parseFloat(thigh) : null,
+      weight: parseOptionalNumber(weight),
+      body_fat: parseOptionalNumber(bodyFat),
+      chest: parseOptionalNumber(chest),
+      shoulder: parseOptionalNumber(shoulder),
+      arm: parseOptionalNumber(arm),
+      thigh: parseOptionalNumber(thigh),
     });
     setSaving(false);
     if (error) { alert('エラー: ' + error.message); return; }
     showToast('保存しました！');
-    setWeight(''); setChest(''); setShoulder(''); setArm(''); setThigh('');
+    setWeight(''); setBodyFat(''); setChest(''); setShoulder(''); setArm(''); setThigh('');
+    load();
+  };
+
+  const startEdit = (r: BodyRecord) => {
+    setEditingId(r.id);
+    setEditDate(r.date);
+    setEditWeight(r.weight != null ? String(r.weight) : '');
+    setEditBodyFat(r.body_fat != null ? String(r.body_fat) : '');
+    setEditChest(r.chest != null ? String(r.chest) : '');
+    setEditShoulder(r.shoulder != null ? String(r.shoulder) : '');
+    setEditArm(r.arm != null ? String(r.arm) : '');
+    setEditThigh(r.thigh != null ? String(r.thigh) : '');
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editDate) return;
+    const { error } = await supabase.from('body_records').update({
+      date: editDate,
+      weight: parseOptionalNumber(editWeight),
+      body_fat: parseOptionalNumber(editBodyFat),
+      chest: parseOptionalNumber(editChest),
+      shoulder: parseOptionalNumber(editShoulder),
+      arm: parseOptionalNumber(editArm),
+      thigh: parseOptionalNumber(editThigh),
+    }).eq('id', editingId);
+    if (error) { alert('エラー: ' + error.message); return; }
+    showToast('更新しました！');
+    setEditingId(null);
     load();
   };
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return;
     await supabase.from('body_records').delete().eq('id', id);
+    setEditingId(null);
     load();
   };
 
@@ -220,6 +263,93 @@ function SizeTab() {
     pointRadius: 4,
   }));
 
+  const renderMetrics = (r: BodyRecord) => (
+    <>
+      {r.weight != null && `体重 ${r.weight}kg`}
+      {r.body_fat != null && ` 体脂肪率 ${r.body_fat}%`}
+      {r.chest != null && ` 胸囲 ${r.chest}cm`}
+      {r.shoulder != null && ` 肩幅 ${r.shoulder}cm`}
+      {r.arm != null && ` 腕囲 ${r.arm}cm`}
+      {r.thigh != null && ` 太もも ${r.thigh}cm`}
+    </>
+  );
+
+  const renderItem = (r: BodyRecord) => {
+    const isEditing = editingId === r.id;
+    return (
+      <div key={r.id} style={{ marginBottom: '8px' }}>
+        <div className="record-item">
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '13px' }}>{r.date}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginTop: '4px' }}>
+              {renderMetrics(r)}
+            </div>
+          </div>
+          <button
+            className="delete-btn"
+            onClick={() => isEditing ? setEditingId(null) : startEdit(r)}
+            style={{ color: isEditing ? '#94a3b8' : 'var(--primary)', fontSize: '12px', fontWeight: 600 }}
+          >
+            {isEditing ? '閉じる' : '編集'}
+          </button>
+        </div>
+
+        {isEditing && (
+          <div style={{
+            background: '#f8fafc', borderRadius: '12px',
+            padding: '12px', marginTop: '4px',
+            border: '1px solid rgba(59,130,246,0.2)',
+          }}>
+            <div className="input-row">
+              <div className="input-group">
+                <label>日付</label>
+                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label>体重(kg)</label>
+                <input type="number" step="0.1" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>体脂肪率(%)</label>
+                <input type="number" step="0.1" value={editBodyFat} onChange={e => setEditBodyFat(e.target.value)} />
+              </div>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label>胸囲(cm)</label>
+                <input type="number" step="0.1" value={editChest} onChange={e => setEditChest(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>肩幅(cm)</label>
+                <input type="number" step="0.1" value={editShoulder} onChange={e => setEditShoulder(e.target.value)} />
+              </div>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label>腕囲(cm)</label>
+                <input type="number" step="0.1" value={editArm} onChange={e => setEditArm(e.target.value)} />
+              </div>
+              <div className="input-group">
+                <label>太もも(cm)</label>
+                <input type="number" step="0.1" value={editThigh} onChange={e => setEditThigh(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <button onClick={() => del(r.id)} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                削除
+              </button>
+              <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                保存
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="record-panel active">
       <div className="rec-card">
@@ -229,9 +359,15 @@ function SizeTab() {
             <label>日付</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
+        </div>
+        <div className="input-row">
           <div className="input-group">
             <label>体重(kg)</label>
             <input type="number" step="0.1" placeholder="75.0" value={weight} onChange={e => setWeight(e.target.value)} />
+          </div>
+          <div className="input-group">
+            <label>体脂肪率(%)</label>
+            <input type="number" step="0.1" placeholder="20.0" value={bodyFat} onChange={e => setBodyFat(e.target.value)} />
           </div>
         </div>
         <div className="input-row">
@@ -290,21 +426,7 @@ function SizeTab() {
       <div className="rec-card">
         <div className="rec-card-title">記録一覧</div>
         <div className="record-list">
-          {records.slice().reverse().map(r => (
-            <div key={r.id} className="record-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                <span style={{ fontWeight: 700 }}>{r.date}</span>
-                <button className="delete-btn" onClick={() => del(r.id)}>削除</button>
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
-                {r.weight != null && `体重 ${r.weight}kg`}
-                {r.chest != null && ` 胸囲 ${r.chest}cm`}
-                {r.shoulder != null && ` 肩幅 ${r.shoulder}cm`}
-                {r.arm != null && ` 腕囲 ${r.arm}cm`}
-                {r.thigh != null && ` 太もも ${r.thigh}cm`}
-              </div>
-            </div>
-          ))}
+          {records.slice().reverse().map(r => renderItem(r))}
           {records.length === 0 && <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>}
         </div>
       </div>
@@ -999,6 +1121,10 @@ function CheckinTab() {
   const [editDays, setEditDays] = useState<Set<string>>(new Set());
   const [editWeight, setEditWeight] = useState('');
   const [editMemo, setEditMemo] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  });
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -1090,10 +1216,9 @@ function CheckinTab() {
   const totalWeeks = records.length;
   const avgPerWeek = totalWeeks > 0 ? (totalDays / totalWeeks).toFixed(1) : '0';
 
-  // Calendar for current month
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  // Calendar for selected month
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -1126,6 +1251,9 @@ function CheckinTab() {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const changeCalendarMonth = (delta: number) => {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  };
 
   return (
     <div className="record-panel active">
@@ -1181,8 +1309,22 @@ function CheckinTab() {
           </div>
         </div>
 
-        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-sub)', marginBottom: '6px' }}>
-          {year}年{month + 1}月
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <button
+            onClick={() => changeCalendarMonth(-1)}
+            style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-sub)' }}
+          >
+            ‹
+          </button>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>
+            {year}年{String(month + 1).padStart(2, '0')}月
+          </div>
+          <button
+            onClick={() => changeCalendarMonth(1)}
+            style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-sub)' }}
+          >
+            ›
+          </button>
         </div>
         <div className="calendar-grid">
           {['月', '火', '水', '木', '金', '土', '日'].map(d => (
