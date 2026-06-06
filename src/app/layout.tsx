@@ -4,6 +4,15 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'マッチョ計画 💪',
   description: 'ラグビー選手体型を目指す 1年計画',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
