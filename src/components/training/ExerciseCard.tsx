@@ -4,12 +4,23 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Exercise } from '@/types';
 
+export type ExerciseHistorySummary = {
+  latest?: {
+    weight: number;
+    reps: number;
+    sets: number;
+  };
+  pb?: number;
+};
+
 interface Props {
   exercise: Exercise;
+  history?: ExerciseHistorySummary;
 }
 
-export default function ExerciseCard({ exercise }: Props) {
+export default function ExerciseCard({ exercise, history }: Props) {
   const [open, setOpen] = useState(false);
+  const latest = history?.latest;
 
   return (
     <div className={`exercise-card${open ? ' open' : ''}`}>
@@ -19,7 +30,7 @@ export default function ExerciseCard({ exercise }: Props) {
           <div className="ex-name">{exercise.name}</div>
           <div className="ex-set">{exercise.sets}セット × {exercise.reps}</div>
         </div>
-        <div className="ex-chevron">›</div>
+        <div className={`ex-chevron${open ? ' open' : ''}`} aria-hidden="true" />
       </div>
       <div className="exercise-detail">
         <div className="exercise-detail-inner">
@@ -41,6 +52,18 @@ export default function ExerciseCard({ exercise }: Props) {
               <li key={i}>{point}</li>
             ))}
           </ul>
+          {latest && (
+            <div className="exercise-history">
+              <div className="exercise-history-item">
+                <span className="exercise-history-label">前回</span>
+                <strong>{latest.weight}kg × {latest.reps}rep × {latest.sets}set</strong>
+              </div>
+              <div className="exercise-history-item">
+                <span className="exercise-history-label">PB</span>
+                <strong>{history?.pb ?? latest.weight}kg</strong>
+              </div>
+            </div>
+          )}
           <a
             className="yt-btn"
             href={exercise.youtubeUrl}

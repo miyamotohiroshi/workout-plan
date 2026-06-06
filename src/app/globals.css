@@ -312,8 +312,18 @@ body::before {
 .ex-meta{flex:1;min-width:0;}
 .ex-name{font-size:15px;font-weight:700;}
 .ex-set{font-size:12px;color:var(--text-sub);margin-top:2px;}
-.ex-chevron{font-size:18px;color:#94a3b8;transition:transform .25s;flex-shrink:0;}
-.exercise-card.open .ex-chevron{transform:rotate(180deg);}
+.ex-chevron{
+  width:18px;height:18px;flex-shrink:0;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.ex-chevron::before{
+  content:'';width:7px;height:7px;
+  border-right:2px solid #94a3b8;border-bottom:2px solid #94a3b8;
+  transform:rotate(45deg);display:block;
+}
+.ex-chevron.open::before{
+  border-right:0;border-bottom:0;border-left:2px solid #94a3b8;border-top:2px solid #94a3b8;
+}
 .exercise-detail{max-height:0;overflow:hidden;transition:max-height .35s ease;border-top:0 solid #f1f5f9;}
 .exercise-card.open .exercise-detail{max-height:900px;border-top-width:1px;}
 .exercise-detail-inner{padding:14px;}
@@ -322,6 +332,21 @@ body::before {
 .ex-points{margin-bottom:12px;list-style:none;padding-left:0;}
 .ex-points li{font-size:12px;color:var(--text);padding:3px 0 3px 16px;position:relative;line-height:1.5;}
 .ex-points li::before{content:'▸';position:absolute;left:0;color:var(--primary);}
+.exercise-history {
+  display:grid;grid-template-columns:minmax(0,1fr) 70px;gap:0;
+  margin:2px 0 18px;padding:8px 0;border-radius:8px;overflow:hidden;
+  background:linear-gradient(135deg,rgba(37,99,235,.07),rgba(14,165,233,.05));
+  border:none;
+}
+.exercise-history-item {
+  min-width:0;background:transparent;border-radius:0;padding:6px 16px;
+  display:flex;flex-direction:column;gap:2px;
+}
+.exercise-history-item + .exercise-history-item { border-left:2px solid #fff; }
+.exercise-history-label { font-size:10px;font-weight:800;color:var(--primary);line-height:1; }
+.exercise-history-item strong {
+  font-size:12px;font-weight:900;color:#0f172a;line-height:1.25;white-space:nowrap;
+}
 .yt-btn{display:inline-flex;align-items:center;gap:6px;background:#ef4444;color:#fff;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .2s;}
 .yt-btn:hover{opacity:.85;}
 

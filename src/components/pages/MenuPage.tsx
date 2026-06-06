@@ -1,11 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 import { PATTERN_A, PATTERN_B } from '@/lib/trainingData';
 import DayTabs from '@/components/training/DayTabs';
-import ExerciseCard from '@/components/training/ExerciseCard';
+import ExerciseCard, { ExerciseHistorySummary } from '@/components/training/ExerciseCard';
 import { TrainingPattern, DaySchedule } from '@/types';
+
+type ExerciseRecord = {
+  exercise_name: string;
+  date: string;
+  weight: number;
+  reps: number;
+  sets: number;
+};
+
+type ExerciseHistoryMap = Record<string, ExerciseHistorySummary>;
 
 const BODY_PART_IMAGES: Record<string, string> = {
   'a-mon': '/bodyParts/shoulder.jpg',
@@ -30,7 +41,15 @@ function getBodyPartVolume(volume: string) {
   };
 }
 
-function DayPanel({ daySchedule, patternId }: { daySchedule: DaySchedule; patternId: string }) {
+function DayPanel({
+  daySchedule,
+  patternId,
+  exerciseHistory,
+}: {
+  daySchedule: DaySchedule;
+  patternId: string;
+  exerciseHistory: ExerciseHistoryMap;
+}) {
   if (daySchedule.isRest) {
     return (
       <div className="training-panel active">
@@ -96,13 +115,13 @@ function DayPanel({ daySchedule, patternId }: { daySchedule: DaySchedule; patter
         </div>
       )}
       {daySchedule.exercises.map((ex, i) => (
-        <ExerciseCard key={i} exercise={ex} />
+        <ExerciseCard key={i} exercise={ex} history={exerciseHistory[ex.name]} />
       ))}
     </div>
   );
 }
 
-function PatternSection({ pattern }: { pattern: TrainingPattern }) {
+function PatternSection({ pattern, exerciseHistory }: { pattern: TrainingPattern; exerciseHistory: ExerciseHistoryMap }) {
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const activeDay = pattern.schedule[activeDayIndex];
 
@@ -113,13 +132,49 @@ function PatternSection({ pattern }: { pattern: TrainingPattern }) {
         activeDayIndex={activeDayIndex}
         onDayChange={setActiveDayIndex}
       />
-      <DayPanel daySchedule={activeDay} patternId={pattern.id} />
+      <DayPanel daySchedule={activeDay} patternId={pattern.id} exerciseHistory={exerciseHistory} />
     </div>
   );
 }
 
 export default function MenuPage() {
   const [activePattern, setActivePattern] = useState<'a' | 'b'>('a');
+  const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryMap>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadExerciseHistory() {
+      const { data } = await supabase
+        .from('exercise_records')
+        .select('exercise_name, date, weight, reps, sets')
+        .order('date', { ascending: false });
+
+      if (cancelled) return;
+
+      const next: ExerciseHistoryMap = {};
+      (data as ExerciseRecord[] | null)?.forEach(record => {
+        const current = next[record.exercise_name];
+        if (!current) {
+          next[record.exercise_name] = {
+            latest: {
+              weight: record.weight,
+              reps: record.reps,
+              sets: record.sets,
+            },
+            pb: record.weight,
+          };
+          return;
+        }
+
+        current.pb = Math.max(current.pb ?? record.weight, record.weight);
+      });
+      setExerciseHistory(next);
+    }
+
+    loadExerciseHistory();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="container">
@@ -150,9 +205,9 @@ export default function MenuPage() {
       </div>
 
       {activePattern === 'a' ? (
-        <PatternSection pattern={PATTERN_A} />
+        <PatternSection pattern={PATTERN_A} exerciseHistory={exerciseHistory} />
       ) : (
-        <PatternSection pattern={PATTERN_B} />
+        <PatternSection pattern={PATTERN_B} exerciseHistory={exerciseHistory} />
       )}
     </div>
   );
