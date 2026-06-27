@@ -372,6 +372,8 @@ body::before {
 }
 .yt-btn{display:inline-flex;align-items:center;gap:6px;background:#ef4444;color:#fff;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;transition:opacity .2s;}
 .yt-btn:hover{opacity:.85;}
+.record-btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#2563eb,#0ea5e9);color:#fff;padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:opacity .2s;white-space:nowrap;}
+.record-btn:hover{opacity:.85;}
 
 /* ===== DIET ===== */
 .diet-card{background:var(--card-bg);backdrop-filter:blur(12px);border-radius:var(--radius);padding:16px;margin-bottom:10px;border:1px solid rgba(255,255,255,.7);box-shadow:0 2px 12px rgba(0,0,0,.06);}

@@ -8,6 +8,7 @@ import GoalPage from '@/components/pages/GoalPage';
 import DietPage from '@/components/pages/DietPage';
 import SuppPage from '@/components/pages/SuppPage';
 import RecordPage from '@/components/pages/RecordPage';
+import { RecordContext, PendingRecord } from '@/lib/recordContext';
 
 type Tab = 'menu' | 'goal' | 'diet' | 'supp' | 'record';
 
@@ -15,6 +16,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('menu');
   const activeTabRef = useRef<Tab>('menu');
   const scrollPositionsRef = useRef<Partial<Record<Tab, number>>>({});
+  const [pendingRecord, setPendingRecord] = useState<PendingRecord | null>(null);
 
   const getNavPinnedScrollY = () => {
     const nav = document.querySelector('.main-nav');
@@ -47,8 +49,13 @@ export default function Home() {
     });
   };
 
+  const navigateToRecord = (record: PendingRecord) => {
+    setPendingRecord(record);
+    handleTabChange('record');
+  };
+
   return (
-    <>
+    <RecordContext.Provider value={{ navigateToRecord }}>
       <Hero />
       <MainNav activeTab={activeTab} onTabChange={handleTabChange} />
 
@@ -65,7 +72,7 @@ export default function Home() {
         <SuppPage />
       </div>
       <div className={activeTab === 'record' ? 'page active' : 'page'}>
-        <RecordPage />
+        <RecordPage pendingRecord={pendingRecord} onClearPending={() => setPendingRecord(null)} />
       </div>
 
       <footer className="footer">
@@ -80,6 +87,6 @@ export default function Home() {
       >
         ↑
       </button>
-    </>
+    </RecordContext.Provider>
   );
 }

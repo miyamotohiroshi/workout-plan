@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { supabase, getPhotoUrl } from '@/lib/supabase';
+import { PendingRecord } from '@/lib/recordContext';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -444,7 +445,7 @@ interface ExerciseRecord {
   sets: number;
 }
 
-function WeightTab() {
+function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingRecord | null; onClearPending?: () => void }) {
   const [records, setRecords] = useState<ExerciseRecord[]>([]);
   const [date, setDate] = useState(todayStr());
   const [exerciseName, setExerciseName] = useState(EXERCISES[0]);
@@ -483,6 +484,16 @@ function WeightTab() {
     loadInitialRecords();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!pendingRecord) return;
+    setExerciseName(pendingRecord.exerciseName);
+    if (pendingRecord.weight > 0) setWeight(String(pendingRecord.weight));
+    if (pendingRecord.reps > 0) setReps(String(pendingRecord.reps));
+    if (pendingRecord.sets > 0) setSets(String(pendingRecord.sets));
+    setDate(todayStr());
+    onClearPending?.();
+  }, [pendingRecord]);
 
   const save = async () => {
     if (!date || !weight || !reps || !sets) { alert('全項目を入力してください'); return; }
@@ -1418,8 +1429,14 @@ function CheckinTab() {
 }
 
 // ── Main RecordPage ──────────────────────────────────────────────────────────
-export default function RecordPage() {
+export default function RecordPage({ pendingRecord, onClearPending }: { pendingRecord?: PendingRecord | null; onClearPending?: () => void }) {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('size');
+
+  useEffect(() => {
+    if (pendingRecord) {
+      setActiveSubTab('weight');
+    }
+  }, [pendingRecord]);
 
   return (
     <div className="container">
@@ -1440,7 +1457,7 @@ export default function RecordPage() {
         </div>
 
         {activeSubTab === 'size' && <SizeTab />}
-        {activeSubTab === 'weight' && <WeightTab />}
+        {activeSubTab === 'weight' && <WeightTab pendingRecord={pendingRecord} onClearPending={onClearPending} />}
         {activeSubTab === 'photo' && <PhotoTab />}
         {activeSubTab === 'checkin' && <CheckinTab />}
       </div>

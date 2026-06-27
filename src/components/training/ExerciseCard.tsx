@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Exercise } from '@/types';
+import { useRecordContext } from '@/lib/recordContext';
 
 type EquipmentCategory = 'barbell' | 'dumbbell' | 'machine' | 'bodyweight' | 'core';
 
@@ -87,6 +88,16 @@ export default function ExerciseCard({ exercise, history }: Props) {
   const [open, setOpen] = useState(false);
   const latest = history?.latest;
   const equipmentCategory = getEquipmentCategory(exercise.name);
+  const { navigateToRecord } = useRecordContext();
+
+  const handleRecord = () => {
+    navigateToRecord({
+      exerciseName: exercise.name,
+      weight: latest?.weight ?? 0,
+      reps: latest?.reps ?? 0,
+      sets: latest?.sets ?? 0,
+    });
+  };
 
   return (
     <div className={`exercise-card${open ? ' open' : ''}`}>
@@ -132,14 +143,19 @@ export default function ExerciseCard({ exercise, history }: Props) {
               </div>
             </div>
           )}
-          <a
-            className="yt-btn"
-            href={exercise.youtubeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            ▶ YouTube で解説を見る
-          </a>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <a
+              className="yt-btn"
+              href={exercise.youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ▶ YouTube で解説を見る
+            </a>
+            <button className="record-btn" onClick={handleRecord}>
+              ✏️ 記録する
+            </button>
+          </div>
         </div>
       </div>
     </div>
