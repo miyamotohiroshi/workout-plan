@@ -307,7 +307,7 @@ const chestExercises: Exercise[] = [
     imageUrl: EX_IMAGES['ダンベル・フライ'],
   },
   {
-    name: 'ダンベル・サイドレイズ（肩補助）',
+    name: 'ダンベル・サイドレイズ',
     icon: '↔️',
     sets: 3,
     reps: '15rep',
@@ -317,7 +317,7 @@ const chestExercises: Exercise[] = [
       '15〜20repで筋肉に血を集める',
     ],
     youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルサイドレイズ+コツ',
-    imageUrl: EX_IMAGES['ダンベル・サイドレイズ（肩補助）'],
+    imageUrl: EX_IMAGES['ダンベル・サイドレイズ'],
   },
   {
     name: 'ディップス（自重）',
