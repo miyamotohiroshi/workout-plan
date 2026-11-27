@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
+import { FOODS } from '@/lib/proteinFoods';
 
 type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 type MealData = Record<string, number>;
@@ -15,24 +16,9 @@ type ProteinLogRow = {
   snack: MealData | null;
 };
 
-const PROTEIN_TARGET = 140;
+const PROTEIN_TARGET = 150;
 const PROTEIN_LOG_UPDATED_EVENT = 'protein-log-updated';
 
-const FOODS = [
-  { key: 'protein',       label: 'プロテイン',        unit: '1杯',     protein: 25  },
-  { key: 'egg',           label: '卵',               unit: '個',      protein: 6   },
-  { key: 'chicken_breast',label: '鶏胸肉・ささみ',    unit: '50g',     protein: 11.5 },
-  { key: 'chicken_thigh', label: '鶏もも',            unit: '50g',     protein: 8.5 },
-  { key: 'beef',          label: '牛肉',              unit: '50g',     protein: 10  },
-  { key: 'pork',          label: '豚肉',              unit: '50g',     protein: 10  },
-  { key: 'fish',          label: '魚（鮭・サバ等）',  unit: '50g',     protein: 11  },
-  { key: 'tofu',          label: '豆腐',              unit: '100g',    protein: 6   },
-  { key: 'tuna_can',      label: 'ツナ缶',            unit: '1缶',     protein: 18  },
-  { key: 'natto',         label: '納豆',              unit: '1パック', protein: 6.6 },
-  { key: 'milk',          label: '牛乳・豆乳',        unit: '200ml',   protein: 6.8 },
-  { key: 'greek_yogurt',  label: 'ギリシャヨーグルト',unit: '100g',    protein: 10  },
-  { key: 'yogurt',        label: '通常ヨーグルト',    unit: '100g',    protein: 3   },
-] as const;
 
 const MEALS: { key: MealKey; label: string; icon: string }[] = [
   { key: 'breakfast', label: '朝食', icon: '🌅' },
@@ -102,7 +88,7 @@ export function ProteinAchievementCalendar() {
     let cancelled = false;
 
     async function loadMonth() {
-      const { data } = await supabase
+      const { data } = await db
         .from('protein_logs')
         .select('date, breakfast, lunch, dinner, snack')
         .gte('date', monthStart)
@@ -136,7 +122,7 @@ export function ProteinAchievementCalendar() {
         <button className="protein-calendar-nav" onClick={() => setCalendarMonth(prev => addMonths(prev, -1))}>‹</button>
         <div>
           <div className="protein-calendar-title">{year}年{String(month + 1).padStart(2, '0')}月</div>
-          <div className="protein-calendar-sub">140g以上の日をハイライト</div>
+          <div className="protein-calendar-sub">{PROTEIN_TARGET}g以上の日をハイライト</div>
         </div>
         <button className="protein-calendar-nav" onClick={() => setCalendarMonth(prev => addMonths(prev, 1))}>›</button>
       </div>
@@ -170,7 +156,7 @@ export function ProteinAchievementCalendar() {
       </div>
 
       <div className="protein-calendar-legend">
-        <span><i className="achieved" />140g以上</span>
+        <span><i className="achieved" />{PROTEIN_TARGET}g以上</span>
         <span><i className="logged" />記録あり</span>
       </div>
     </div>
@@ -191,7 +177,7 @@ export default function ProteinTracker() {
 
   const load = useCallback(async () => {
     const loadDate = date;
-    const { data } = await supabase
+    const { data } = await db
       .from('protein_logs')
       .select('*')
       .eq('date', loadDate)
@@ -217,7 +203,7 @@ export default function ProteinTracker() {
   useEffect(() => { load(); }, [load]);
 
   const saveNow = async (saveMeals: MealsData, saveDate: string) => {
-    const { error } = await supabase.from('protein_logs').upsert(
+    const { error } = await db.from('protein_logs').upsert(
       { date: saveDate, ...saveMeals },
       { onConflict: 'date' }
     );

@@ -1,3 +1,13 @@
+# マッチョ計画 (workout-plan)
+
+- 本番: https://workout.fate-design.jp/
+- 環境まとめ (本番URL・DB・ローカルの接続先・画像の置き場所): [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
+- デプロイ手順: [DEPLOY.md](DEPLOY.md)
+
+> ⚠️ `npm run dev` のローカル環境は **本番のデータベースを読み書き** します。
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
