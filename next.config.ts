@@ -4,6 +4,9 @@ import { PHASE_DEVELOPMENT_SERVER } from 'next/constants';
 // npm run dev のときだけ /api を中継する先 (本番のAPI)。.env.local の DEV_API_PROXY で変更可
 const DEV_API_PROXY = process.env.DEV_API_PROXY || 'https://workout.fate-design.jp/api';
 
+// ビルド時刻 (「最新版に更新」ボタンの横にバージョンとして表示)。NEXT_PUBLIC_ の環境変数はビルド時に埋め込まれる
+process.env.NEXT_PUBLIC_BUILD_TIME ??= new Date().toISOString();
+
 const baseConfig: NextConfig = {
   images: {
     // 静的エクスポートでは画像最適化サーバーが使えない

@@ -1,0 +1,25 @@
+# キャッシュ設定 (ビルドで out/ にコピーされ、サイト直下に置かれる)
+# 目的: 公開したら、次にアプリを開いたときに自動で最新版になるようにする
+#  - 入口のページ (HTML / .txt) と manifest.json は毎回サーバーに確認する (変わっていなければ 304 で軽い)
+#  - _next/static/ はファイル名がビルドごとに変わるので長期キャッシュ
+#  - 画像はファイル名を変えずに差し替えることがあるので毎回確認
+
+<IfModule mod_expires.c>
+  ExpiresActive Off
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header unset Expires
+
+  <FilesMatch "\.(html|txt|json|webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  <FilesMatch "\.(jpe?g|png|webp|svg|ico)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  <If "%{REQUEST_URI} =~ m#^/_next/static/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+</IfModule>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
+import AppUpdateButton from '@/components/AppUpdateButton';
 
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
@@ -167,6 +168,8 @@ export default function GoalPage() {
             <div className="tip-item"><div className="tip-emoji">📈</div><div>増量期は<strong>+200〜300kcal</strong>ずつ段階的に増やす</div></div>
           </div>
         </div>
+
+        <AppUpdateButton />
       </div>
     </div>
   );
