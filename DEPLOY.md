@@ -25,9 +25,9 @@ public_html/
 - `uploads/` の書き込み権限を 755 (書けない場合は 707) にする
 - サブディレクトリに置く場合は `manifest.json` / `icon.png` の絶対パスの修正が必要 (ドメイン直下か専用サブドメイン推奨)
 
-## 4. アクセス制限 (推奨)
-Supabase 時代と同様にアプリ側にログインは無く、URL を知っていれば誰でも読み書きできます。
-サーバーパネルの「アクセス制限」または `public_html/.htaccess` の Basic 認証で保護してください。
+## 4. ログイン設定
+アプリにログイン機能があり、API と画像はログインしないと使えません。
+`api/config.php` の `auth_user` / `auth_pass_hash` / `auth_secret` を設定してください (作り方は `config.sample.php` のコメント、パスワードを忘れたときは [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) を参照)。
 
 ## 5. Supabase からのデータ移行
 1. Supabase の Table Editor で各テーブルを CSV エクスポート
@@ -39,4 +39,4 @@ Supabase 時代と同様にアプリ側にログインは無く、URL を知っ�
    同じパス構成で `uploads/photos/...` `uploads/hero-images/...` に FTP アップロード
 
 ## ローカル開発
-フロントは `npm run dev`。API を試す場合は、本番サーバーの `config.php` に `allowed_origin => 'http://localhost:3000'` を設定し、`.env.local` に `NEXT_PUBLIC_API_BASE` / `NEXT_PUBLIC_UPLOADS_BASE` を書く ([.env.example](.env.example) 参照)。
+`npm run dev` で起動すると、`/api` が本番 API へ中継されます (**本番のデータを読み書きします**)。詳しくは [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) を参照。
