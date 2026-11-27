@@ -3,37 +3,43 @@
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/db';
 
-const DEFAULT_CURRENT_WEIGHT = 66;
-
 function formatWeight(weight: number) {
   return Number.isInteger(weight) ? String(weight) : weight.toFixed(1);
 }
 
+type LatestBody = { weight: number; bodyFat: number | null; date: string };
+
 export default function GoalPage() {
-  const [currentWeight, setCurrentWeight] = useState(DEFAULT_CURRENT_WEIGHT);
+  // 現在の体重 = 記録 > サイズ で入力した体重の最新値
+  const [latest, setLatest] = useState<LatestBody | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadLatestCheckinWeight() {
+    async function loadLatestBodyRecord() {
       const { data } = await db
-        .from('checkins')
-        .select('weight')
+        .from('body_records')
+        .select('weight, body_fat, date')
         .not('weight', 'is', null)
-        .order('week', { ascending: false })
+        .order('date', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!cancelled && data?.weight != null) {
-        setCurrentWeight(Number(data.weight));
+        setLatest({
+          weight: Number(data.weight),
+          bodyFat: data.body_fat != null ? Number(data.body_fat) : null,
+          date: String(data.date).slice(0, 10),
+        });
       }
     }
 
-    loadLatestCheckinWeight();
+    loadLatestBodyRecord();
     return () => { cancelled = true; };
   }, []);
 
-  const currentWeightLabel = formatWeight(currentWeight);
+  const currentWeightLabel = latest ? formatWeight(latest.weight) : '—';
+  const recordedOn = latest ? latest.date.slice(5).replace('-', '/') : '';
 
   return (
     <div className="container">
@@ -42,24 +48,38 @@ export default function GoalPage() {
 
         <div className="goal-grid">
           <div className="goal-card accent">
-            <div className="label">目標体重</div>
-            <div className="value">72<span className="unit">〜75 kg</span></div>
+            <div className="label">最終目標体重</div>
+            <div className="value">78<span className="unit">〜80 kg</span></div>
           </div>
           <div className="goal-card">
-            <div className="label">現在の体重</div>
+            <div className="label">現在の体重{recordedOn && <span style={{ fontWeight: 400 }}>（{recordedOn} 記録）</span>}</div>
             <div className="value">{currentWeightLabel}<span className="unit"> kg</span></div>
           </div>
           <div className="goal-card">
-            <div className="label">摂取カロリー目標</div>
-            <div className="value">2,700<span className="unit"> kcal</span></div>
+            <div className="label">摂取カロリー目標（減量期）</div>
+            <div className="value">2,300<span className="unit">〜2,400 kcal</span></div>
           </div>
           <div className="goal-card">
             <div className="label">タンパク質目標</div>
-            <div className="value">140<span className="unit"> g/日</span></div>
+            <div className="value">150<span className="unit">〜160 g/日</span></div>
           </div>
         </div>
 
         <div className="body-card" style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>進め方（2ステップ）</div>
+          <div className="tip-list">
+            <div className="tip-item">
+              <div className="tip-emoji">①</div>
+              <div><strong>今：体脂肪を落とす（2〜3か月・2026年2月末めやす）</strong><br />体重 74〜75kg まで。トレーニングの重量は落とさない。下腹がすっきりしたら次へ</div>
+            </div>
+            <div className="tip-item">
+              <div className="tip-emoji">②</div>
+              <div><strong>次：ゆっくり増量して 78〜80kg へ</strong><br />月 +0.3〜0.5kg のペース。ウエストが増え始めたらカロリーを少し戻す</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="body-card">
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>現在のボディプロフィール</div>
           <div className="body-grid">
             <div className="body-item">
@@ -70,6 +90,12 @@ export default function GoalPage() {
               <div className="bi-label">体重</div>
               <div className="bi-val">{currentWeightLabel} kg</div>
             </div>
+            {latest?.bodyFat != null && (
+              <div className="body-item">
+                <div className="bi-label">体脂肪率</div>
+                <div className="bi-val">{formatWeight(latest.bodyFat)} %</div>
+              </div>
+            )}
             <div className="body-item" style={{ gridColumn: '1 / -1' }}>
               <div className="bi-label">身体の特徴</div>
               <div className="bi-val" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.6, marginTop: 4 }}>
@@ -132,12 +158,13 @@ export default function GoalPage() {
         </div>
 
         <div className="body-card">
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>増量方針</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>体づくりの方針</div>
           <div className="tip-list">
-            <div className="tip-item"><div className="tip-emoji">📈</div><div>急激に増やさず、<strong>+200〜300kcal</strong>ずつ段階的に増やす</div></div>
-            <div className="tip-item"><div className="tip-emoji">🎯</div><div>目標体重 <strong>72〜75kg</strong>を1年かけて達成</div></div>
-            <div className="tip-item"><div className="tip-emoji">🚶</div><div>有酸素は毎日<strong>7000〜9000歩</strong> + 食後10分散歩（長時間ランニング不要）</div></div>
-            <div className="tip-item"><div className="tip-emoji">🍽️</div><div>下腹に脂肪がついてきたらカロリーを少し絞る</div></div>
+            <div className="tip-item"><div className="tip-emoji">⚖️</div><div>体重だけでなく<strong>ウエストと体脂肪率</strong>をセットで見る（同じ80kgでも見た目が大きく違う）</div></div>
+            <div className="tip-item"><div className="tip-emoji">🚶</div><div>有酸素は<strong>1日8,000歩</strong>が目標。まずは<strong>食後10分の散歩を1日1回</strong>から</div></div>
+            <div className="tip-item"><div className="tip-emoji">🍗</div><div>毎食<strong>タンパク質30g以上</strong>。食事は朝・昼・夜の定番パターンを決めて作り置き</div></div>
+            <div className="tip-item"><div className="tip-emoji">📉</div><div>減量期は<strong>-300〜400kcal</strong>。体重は週0.3〜0.5kg減がめやす（速すぎると筋肉も落ちる）</div></div>
+            <div className="tip-item"><div className="tip-emoji">📈</div><div>増量期は<strong>+200〜300kcal</strong>ずつ段階的に増やす</div></div>
           </div>
         </div>
       </div>
