@@ -1,712 +1,215 @@
-import { TrainingPattern, Exercise } from '@/types';
+import { TrainingPattern, Exercise, ExerciseRole, DaySchedule } from '@/types';
+import { getExercise, exerciseImageUrl, youtubeSearchUrl } from '@/lib/exercises';
 
-export const SLIDE_IMAGES = [
-  'https://i.pinimg.com/736x/14/7b/c4/147bc4f93a10432f2f41f3ea28acce01.jpg',
-  'https://i.pinimg.com/736x/1c/c7/f1/1cc7f11a62d0b4f9fc442217fb729a7b.jpg',
-  'https://i.pinimg.com/736x/36/59/e7/3659e7e8a1299632301bf16b9d233780.jpg',
-];
-
-// 種目画像: Figma (AI生成) で作成し public/images/exercises/ に配置
-export const EX_IMAGES: Record<string, string> = {
-  'バーベル・オーバーヘッドプレス': '/images/exercises/overhead-press.jpg',
-  'ダンベル・サイドレイズ': '/images/exercises/side-raise.jpg',
-  'ダンベル・リアレイズ': '/images/exercises/rear-raise.jpg',
-  'ショルダー・プレス': '/images/exercises/shoulder-press.jpg',
-  'ダンベル・シュラッグ': '/images/exercises/shrug.jpg',
-  'スミスマシン・スクワット': '/images/exercises/smith-squat.jpg',
-  'レッグプレス': '/images/exercises/leg-press.jpg',
-  'レッグカール': '/images/exercises/leg-curl.jpg',
-  'レッグエクステンション': '/images/exercises/leg-extension.jpg',
-  'カーフレイズ（マシン）': '/images/exercises/calf-raise-machine.jpg',
-  'デッドリフト': '/images/exercises/deadlift.jpg',
-  'バーベル・ベントオーバーロウ': '/images/exercises/barbell-row.jpg',
-  'ダンベル・ワンハンドロウ': '/images/exercises/one-arm-row.jpg',
-  'バーベル・グッドモーニング': '/images/exercises/good-morning.jpg',
-  'バーベル・カール': '/images/exercises/barbell-curl.jpg',
-  'バーベル・ベンチプレス': '/images/exercises/bench-press.jpg',
-  'ダンベル・インクラインプレス': '/images/exercises/incline-press.jpg',
-  'ダンベル・フライ': '/images/exercises/dumbbell-fly.jpg',
-  'ダンベル・サイドレイズ（肩補助）': '/images/exercises/side-raise.jpg',
-  'ディップス（自重）': '/images/exercises/dips.jpg',
-  'バーベル・スクワット': '/images/exercises/barbell-squat.jpg',
-  'バーベル・ヒップスラスト': '/images/exercises/hip-thrust.jpg',
-  'ダンベル・ランジ': '/images/exercises/lunge.jpg',
-  'ルーマニアン・デッドリフト': '/images/exercises/romanian-deadlift.jpg',
-  'カーフレイズ（バーベル）': '/images/exercises/calf-raise-barbell.jpg',
-  'スミスマシン・ショルダープレス': '/images/exercises/smith-shoulder-press.jpg',
-  'マシン・サイドレイズ（またはダンベル）': '/images/exercises/machine-side-raise.jpg',
-  'ラットプルダウン': '/images/exercises/lat-pulldown.jpg',
+// 役割ごとの休憩時間と、重量を上げる目安の既定値
+const ROLE_DEFAULTS: Record<ExerciseRole, { rest: string; progression: string }> = {
+  main: {
+    rest: '2〜3分',
+    progression: '全セットで上限の回数ができたら、次回 +2.5kg（脚・デッドリフトは +5kg）',
+  },
+  sub: {
+    rest: '90秒',
+    progression: '全セットで上限の回数ができたら、次回は重量を1段階上げる',
+  },
+  finish: {
+    rest: '60秒',
+    progression: '同じ重量で回数を増やし、上限を超えたら重量を上げる',
+  },
+  core: {
+    rest: '45〜60秒',
+    progression: '回数（秒数）を毎週少しずつ伸ばし、楽になったら難しいやり方に変える',
+  },
 };
 
-// ===== SHARED EXERCISES =====
+type Override = Partial<Pick<Exercise, 'description' | 'points' | 'rest' | 'progression'>>;
 
-const shoulderExercises: Exercise[] = [
-  {
-    name: 'バーベル・オーバーヘッドプレス',
-    icon: '🔱',
-    sets: 4,
-    reps: '6〜8rep ／ メイン種目',
-    description: '肩の王道種目。全体の三角筋と上部僧帽筋を最大限に刺激。肩の厚みと丸みを作る最重要メニュー。',
-    points: [
-      'グリップは肩幅より少し広め',
-      '体幹をしっかり固めてバーを真上に押す',
-      'バーが顎を超えたら頭を少し前に出す',
-      '最初の2セットで重量を決める（メインはRPE8程度）',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルオーバーヘッドプレス+やり方',
-    imageUrl: EX_IMAGES['バーベル・オーバーヘッドプレス'],
-  },
-  {
-    name: 'ダンベル・サイドレイズ',
-    icon: '↔️',
-    sets: 4,
-    reps: '12〜15rep ／ 最終セットはドロップ',
-    description: '三角筋中部を集中的に鍛える。肩の横の張り出し・服を着たときの肩幅づくりに直結。',
-    points: [
-      '肘を少し曲げ、小指側を上に向けて上げる',
-      '肩より高く上げすぎない（僧帽筋を使いすぎない）',
-      'ゆっくり下ろして筋肉に効かせる',
-      '最終セットはドロップセット（重量を下げて追い込む）',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルサイドレイズ+コツ',
-    imageUrl: EX_IMAGES['ダンベル・サイドレイズ'],
-  },
-  {
-    name: 'ダンベル・リアレイズ',
-    icon: '🔙',
-    sets: 4,
-    reps: '12〜15rep',
-    description: '三角筋後部を鍛え、後ろから見たときの肩の丸みとVシェイプを強調。姿勢改善にも効果的。',
-    points: [
-      '上体を前傾（約45〜90度）させて行う',
-      '肘を少し曲げたまま横に広げる',
-      '肩甲骨を寄せすぎず、三角筋後部で引く意識',
-      '軽めの重量でフォームを優先する',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルリアレイズ+三角筋後部',
-    imageUrl: EX_IMAGES['ダンベル・リアレイズ'],
-  },
-  {
-    name: 'ショルダー・プレス',
-    icon: '🔄',
-    sets: 3,
-    reps: '10〜12rep',
-    description: 'ダンベルを使って三角筋全体を鍛えるプレス種目。バーベルより可動域が広くコントロールしやすいため、フォームを意識しながら追い込みやすい。',
-    points: [
-      'ダンベルを耳の高さ・肩幅程度でスタート',
-      '頭の真上に向けてまっすぐ押し上げる',
-      '最高点で肘をロックせず少し曲げたまま',
-      'ゆっくり（2〜3秒）下ろす',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルショルダープレス+三角筋+フォーム',
-    imageUrl: EX_IMAGES['ショルダー・プレス'],
-  },
-  {
-    name: 'ダンベル・シュラッグ',
-    icon: '⚡',
-    sets: 3,
-    reps: '12rep ／ 締め種目',
-    description: 'ダンベルで僧帽筋（首から肩にかけての筋肉）を鍛える種目。首回りのボリュームアップと肩の安定性向上に効果的。左右個別に動かせるため、左右差の修正にも使いやすい。',
-    points: [
-      'ダンベルを体の横に持ち、肩を耳に近づけるように真上に引き上げる',
-      '最高点で2〜3秒キープして僧帽筋を収縮させる',
-      'ゆっくり下ろしてストレッチをしっかり効かせる',
-      '首を縮めたり回したりしない',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルシュラッグ+僧帽筋+フォーム',
-    imageUrl: EX_IMAGES['ダンベル・シュラッグ'],
-  },
+/** 種目マスターの内容に、その日のセット数・回数・役割を組み合わせてメニュー1行を作る */
+export function ex(id: string, sets: number, reps: string, role: ExerciseRole, override: Override = {}): Exercise {
+  const def = getExercise(id);
+  const defaults = ROLE_DEFAULTS[role];
+  return {
+    id: def.id,
+    name: def.name,
+    icon: def.icon,
+    sets,
+    reps,
+    role,
+    description: override.description ?? def.description,
+    points: override.points ?? def.points,
+    rest: override.rest ?? defaults.rest,
+    progression: override.progression ?? def.progression ?? defaults.progression,
+    youtubeUrl: youtubeSearchUrl(def),
+    imageUrl: exerciseImageUrl(def),
+    part: def.part,
+    equipment: def.equipment,
+  };
+}
+
+/** 種目リストから「N種目 ／ 約X〜Y分」を作る (1種目あたり約10分、腹筋・首は約6分で計算) */
+export function volumeLabel(exercises: Exercise[]): string {
+  const minutes = exercises.reduce((sum, e) => sum + (e.role === 'core' || e.part === '首' ? 6 : 11), 0);
+  const low = Math.round(minutes / 5) * 5;
+  return `${exercises.length}種目 ／ 約${low}〜${low + 10}分`;
+}
+
+export function trainingDay(
+  day: string,
+  label: string,
+  muscleGroup: string,
+  gymType: 'free' | 'machine',
+  headerIcon: string,
+  headerTitle: string,
+  exercises: Exercise[],
+  machine?: { headerTitle: string; exercises: Exercise[] },
+): DaySchedule {
+  return {
+    day, label, muscleGroup, gymType, isRest: false, headerIcon, headerTitle, headerVolume: volumeLabel(exercises), exercises,
+    machineVariant: machine && { headerTitle: machine.headerTitle, headerVolume: volumeLabel(machine.exercises), exercises: machine.exercises },
+  };
+}
+
+export function restDay(day: string, label: string, restIcon: string, restTitle: string, restMessage: string): DaySchedule {
+  return { day, label, muscleGroup: '休み', gymType: 'rest', isRest: true, restIcon, restTitle, restMessage, exercises: [] };
+}
+
+// ===== 共通の曜日メニュー =====
+
+// 月曜: 肩 + 三頭筋 (A・B 共通)
+const shoulderDay = [
+  ex('overhead-press', 4, '6〜8rep', 'main'),
+  ex('shoulder-press', 3, '10〜12rep', 'sub'),
+  ex('side-raise', 4, '12〜15rep', 'sub'),
+  ex('rear-raise', 3, '12〜15rep', 'sub'),
+  ex('skull-crusher', 3, '10〜12rep', 'sub'),
+  ex('hanging-leg-raise', 3, '10〜15rep', 'core'),
+  ex('neck', 2, '前後 各15rep', 'finish'),
 ];
 
-const machineLegExercises: Exercise[] = [
-  {
-    name: 'スミスマシン・スクワット',
-    icon: '🏔️',
-    sets: 4,
-    reps: '8〜10rep ／ メイン種目',
-    description: 'マシンで安定した軌道を確保しながら大腿四頭筋・大臀筋を重点的に鍛える。',
-    points: [
-      '足の位置はやや前方（バーの真下より少し前）',
-      '膝がつま先より内側に入らないよう注意',
-      '太ももが床と平行になるまで下げる',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=スミスマシンスクワット+フォーム',
-    imageUrl: EX_IMAGES['スミスマシン・スクワット'],
-  },
-  {
-    name: 'レッグプレス',
-    icon: '🦿',
-    sets: 4,
-    reps: '10〜12rep',
-    description: '腰への負担を減らしながら大腿四頭筋・大臀筋・ハムストリングスに高重量をかけられる。',
-    points: [
-      '足幅はやや広め、つま先は30度外向き',
-      '膝がプラットフォームに当たりすぎない深さまで曲げる',
-      '腰をシートから浮かさない',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=レッグプレス+やり方+コツ',
-    imageUrl: EX_IMAGES['レッグプレス'],
-  },
-  {
-    name: 'レッグカール',
-    icon: '🔩',
-    sets: 3,
-    reps: '12rep',
-    description: 'ハムストリングスを単独で鍛えられる貴重な種目。太ももの裏の厚みを作る。',
-    points: [
-      '骨盤を浮かさずに曲げる',
-      '最大収縮でキープ（1〜2秒）',
-      'ゆっくり（3秒）伸ばして戻す',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=レッグカール+フォーム',
-    imageUrl: EX_IMAGES['レッグカール'],
-  },
-  {
-    name: 'レッグエクステンション',
-    icon: '🦵',
-    sets: 3,
-    reps: '15rep',
-    description: '大腿四頭筋を最大収縮まで追い込む仕上げ種目。',
-    points: [
-      'つま先をやや外向きにすると外側広筋に入りやすい',
-      '最高点で1〜2秒キープ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=レッグエクステンション+コツ',
-    imageUrl: EX_IMAGES['レッグエクステンション'],
-  },
-  {
-    name: 'カーフレイズ（マシン）',
-    icon: '⬆️',
-    sets: 4,
-    reps: '15〜20rep',
-    description: 'ふくらはぎを鍛えて脚全体のシルエットを完成させる。',
-    points: [
-      '踵が完全に下がりきる深さまでストレッチ',
-      '最高点で2秒キープ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=カーフレイズ+やり方',
-    imageUrl: EX_IMAGES['カーフレイズ（マシン）'],
-  },
+// ===== Pattern A (週4回：月・木・金・土) =====
+// ジムは火曜・水曜が休館日のため、この2日にはトレーニングを入れない
+
+// 基本はフリーウェイトのジム。マシンのジムに行けた日は aMachineLegs に切り替える
+const aFreeLegs = [
+  ex('barbell-squat', 4, '8rep', 'main'),
+  ex('romanian-deadlift', 3, '10rep', 'sub', {
+    points: ['膝は軽く曲げた状態を固定', 'ハムの引っ張りを感じる深さまで前傾', '木曜にデッドリフトをしているので、限界の手前（あと2〜3回できる重さ）で止める'],
+  }),
+  ex('bulgarian-split-squat', 3, '10rep（片脚）', 'sub'),
+  ex('hip-thrust', 3, '10rep', 'sub'),
+  ex('calf-raise-barbell', 4, '15〜20rep', 'finish'),
+  ex('plank', 3, '45〜60秒', 'core'),
 ];
 
-const backBicepExercises: Exercise[] = [
-  {
-    name: 'デッドリフト',
-    icon: '⚓',
-    sets: 4,
-    reps: '5rep ／ 最重要種目',
-    description: '全身の筋肉を動員する最強の種目。背中の厚みとVシェイプ、全体的な筋肉量増加の核心。',
-    points: [
-      'バーはすねの前（ほぼ密着）、足幅は腰幅',
-      '背中をフラットに保ち、腹圧を高めてから引く',
-      'ロックアウトで腰を過度に反らない',
-      '重量より完璧なフォームを優先する',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=デッドリフト+フォーム+初心者',
-    imageUrl: EX_IMAGES['デッドリフト'],
-  },
-  {
-    name: 'バーベル・ベントオーバーロウ',
-    icon: '📐',
-    sets: 4,
-    reps: '8rep',
-    description: '背中全体（広背筋・僧帽筋・菱形筋）に高重量をかけられる。背中の厚みと幅を同時に作る。',
-    points: [
-      '上体は45〜60度に前傾。背中はフラット',
-      'バーをへそに向けて引く（広背筋意識）',
-      '肘を背中に近い軌道で引く',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルベントオーバーロウ+コツ',
-    imageUrl: EX_IMAGES['バーベル・ベントオーバーロウ'],
-  },
-  {
-    name: 'ダンベル・ワンハンドロウ',
-    icon: '💪',
-    sets: 3,
-    reps: '10rep（片側）',
-    description: '片側ずつ行うことで左右差を修正し、広背筋への収縮を感じやすい。',
-    points: [
-      'ベンチに膝と手をついて体を安定',
-      'ダンベルを腰骨に向けて引く',
-      '引いたところで1秒止める',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルロウ+広背筋+コツ',
-    imageUrl: EX_IMAGES['ダンベル・ワンハンドロウ'],
-  },
-  {
-    name: 'バーベル・グッドモーニング',
-    icon: '🎯',
-    sets: 3,
-    reps: '12rep',
-    description: '脊柱起立筋・ハムストリングスを鍛え、デッドリフトのサポート筋を強化。背中の下部の厚みを作る。',
-    points: [
-      'バーを僧帽筋上に担ぐ（軽めで行う）',
-      '背中まっすぐのまま股関節から前傾',
-      'ハムストリングスのストレッチを感じる深さまで',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルグッドモーニング+脊柱起立筋',
-    imageUrl: EX_IMAGES['バーベル・グッドモーニング'],
-  },
-  {
-    name: 'バーベル・カール',
-    icon: '🌀',
-    sets: 3,
-    reps: '10rep',
-    description: '上腕二頭筋を直接鍛え、腕の太さを作る。背中デーの仕上げに。',
-    points: [
-      '肘を固定し、体の揺れを使わない',
-      '最高点で1秒キープ',
-      'ゆっくり（3秒）下ろす',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルカール+上腕二頭筋+フォーム',
-    imageUrl: EX_IMAGES['バーベル・カール'],
-  },
+const aMachineLegs = [
+  ex('smith-squat', 4, '8〜10rep', 'main'),
+  ex('leg-press', 3, '10〜12rep', 'sub'),
+  ex('leg-curl', 3, '12rep', 'sub'),
+  ex('leg-extension', 3, '15rep', 'finish'),
+  ex('calf-raise-machine', 4, '15〜20rep', 'finish'),
+  ex('plank', 3, '45〜60秒', 'core'),
 ];
 
-const chestExercises: Exercise[] = [
-  {
-    name: 'バーベル・ベンチプレス',
-    icon: '💥',
-    sets: 4,
-    reps: '8rep ／ メイン種目',
-    description: '胸板の厚みを作る最基本種目。大胸筋・三角筋前部・上腕三頭筋を総動員。',
-    points: [
-      'グリップは肩幅の1.5倍程度',
-      '肩甲骨を寄せてアーチを作り、肩を守る',
-      'バーを乳首あたりに下ろす',
-      '肘を45度（体との角度）で下ろす',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルベンチプレス+正しいフォーム',
-    imageUrl: EX_IMAGES['バーベル・ベンチプレス'],
-  },
-  {
-    name: 'ダンベル・インクラインプレス',
-    icon: '📈',
-    sets: 3,
-    reps: '10rep',
-    description: '大胸筋上部を鍛え、胸板の上部の厚みと服を着たときのシルエットを作る。',
-    points: [
-      'ベンチ角度は30〜45度',
-      'ダンベルを鎖骨〜乳首の上あたりに下ろす',
-      '押すときに内側に絞るイメージ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=インクラインダンベルプレス+大胸筋上部',
-    imageUrl: EX_IMAGES['ダンベル・インクラインプレス'],
-  },
-  {
-    name: 'ダンベル・フライ',
-    icon: '🦋',
-    sets: 3,
-    reps: '12rep',
-    description: '大胸筋を最大ストレッチさせる種目。胸の内側の輪郭と伸展域での筋肥大に効果的。',
-    points: [
-      '肘を少し曲げた状態を保ったまま弧を描く',
-      '下げすぎて肩が痛い場合は浅めに',
-      '胸の上で絞るように閉じる',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルフライ+大胸筋+コツ',
-    imageUrl: EX_IMAGES['ダンベル・フライ'],
-  },
-  {
-    name: 'ダンベル・サイドレイズ',
-    icon: '↔️',
-    sets: 3,
-    reps: '15rep',
+const aBackBiceps = [
+  ex('deadlift', 4, '5rep', 'main'),
+  ex('pull-up', 4, 'できる回数（目標6〜10rep）', 'main', { rest: '2分' }),
+  ex('barbell-row', 3, '8rep', 'sub'),
+  ex('barbell-curl', 3, '10rep', 'sub'),
+  ex('shrug', 3, '12rep', 'finish'),
+  ex('ab-roller', 3, '8〜12rep', 'core'),
+  ex('neck', 2, '前後 各15rep', 'finish'),
+];
+
+const aChest = [
+  ex('bench-press', 4, '8rep', 'main'),
+  ex('incline-press', 3, '10rep', 'sub'),
+  ex('dumbbell-fly', 3, '12rep', 'sub'),
+  ex('side-raise', 3, '15rep', 'finish', {
     description: '週2回目の肩中部への刺激。月曜より軽めでポンプを狙う。',
-    points: [
-      '月曜より少し軽い重量でコントロール重視',
-      '15〜20repで筋肉に血を集める',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルサイドレイズ+コツ',
-    imageUrl: EX_IMAGES['ダンベル・サイドレイズ'],
-  },
-  {
-    name: 'ディップス（自重）',
-    icon: '🤸',
-    sets: 3,
-    reps: '最大回数',
-    description: '大胸筋下部と三頭筋を仕上げる締め種目。',
-    points: [
-      '前傾すると胸、垂直だと三頭筋に入る',
-      '肘が外に開きすぎないよう注意',
-      'できるなら加重（ダンベルを足で挟む）',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ディップス+大胸筋+フォーム',
-    imageUrl: EX_IMAGES['ディップス（自重）'],
-  },
-];
-
-const freeWeightLegExercises: Exercise[] = [
-  {
-    name: 'バーベル・スクワット',
-    icon: '👑',
-    sets: 4,
-    reps: '8rep ／ 最重要種目',
-    description: '脚の王様種目。大腿四頭筋・大臀筋・ハムストリングスを全部動員。全身の成長ホルモン分泌も促進。',
-    points: [
-      'バーは僧帽筋上（ハイバー）に担ぐ',
-      '足幅は肩幅程度、つま先は30度外向き',
-      '太ももが床と平行になるまで下げる',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルスクワット+正しいフォーム+初心者',
-    imageUrl: EX_IMAGES['バーベル・スクワット'],
-  },
-  {
-    name: 'バーベル・ヒップスラスト',
-    icon: '🍑',
-    sets: 4,
-    reps: '10rep',
-    description: '大臀筋を最大収縮させる最強の種目。お尻の丸みと張りを作り、ラグビー選手的な下半身を構築。',
-    points: [
-      '肩甲骨をベンチの端に固定',
-      '腰を上げたところでお尻を2秒キュッと締める',
-      '腰を反らせすぎず骨盤を水平に',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルヒップスラスト+大臀筋+フォーム',
-    imageUrl: EX_IMAGES['バーベル・ヒップスラスト'],
-  },
-  {
-    name: 'ダンベル・ランジ',
-    icon: '🚶',
-    sets: 3,
-    reps: '12rep（片脚）',
-    description: '左右の脚を均等に鍛えつつ、バランス能力も向上させる。',
-    points: [
-      '踏み込んだ膝が90度になる歩幅',
-      '前膝がつま先より前に出ない',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルランジ+フォーム+コツ',
-    imageUrl: EX_IMAGES['ダンベル・ランジ'],
-  },
-  {
-    name: 'ルーマニアン・デッドリフト',
-    icon: '📉',
-    sets: 3,
-    reps: '10rep',
-    description: 'ハムストリングスをストレッチしながら鍛える。太ももの裏の厚みとお尻の境目を作る。',
-    points: [
-      '膝は軽く曲げた状態を固定',
-      'ハムの引っ張りを感じる深さまで前傾',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ルーマニアンデッドリフト+ハムストリングス',
-    imageUrl: EX_IMAGES['ルーマニアン・デッドリフト'],
-  },
-  {
-    name: 'カーフレイズ（バーベル）',
-    icon: '⬆️',
-    sets: 4,
-    reps: '15〜20rep',
-    description: 'ふくらはぎを鍛えて脚全体のシルエットを完成させる締め種目。',
-    points: [
-      '踵が完全に下がりきるまでストレッチ',
-      '最高点で2秒キープ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=カーフレイズ+バーベル+ふくらはぎ',
-    imageUrl: EX_IMAGES['カーフレイズ（バーベル）'],
-  },
-];
-
-const bFriExercises: Exercise[] = [
-  {
-    name: 'デッドリフト',
-    icon: '⚓',
-    sets: 4,
-    reps: '5rep ／ 最重要種目',
-    description: '全身の筋肉を動員する最強の種目。背中の厚みとVシェイプの核心。',
-    points: [
-      'バーはすねの前（ほぼ密着）、足幅は腰幅',
-      '背中をフラットに保ち、腹圧を高めてから引く',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=デッドリフト+フォーム+初心者',
-    imageUrl: EX_IMAGES['デッドリフト'],
-  },
-  {
-    name: 'バーベル・ベントオーバーロウ',
-    icon: '📐',
-    sets: 3,
-    reps: '8rep',
-    description: '背中全体に高重量をかけられる。背中の厚みと幅を同時に作る。',
-    points: [
-      '上体は45〜60度に前傾。背中はフラット',
-      'バーをへそに向けて引く（広背筋意識）',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルベントオーバーロウ+コツ',
-    imageUrl: EX_IMAGES['バーベル・ベントオーバーロウ'],
-  },
-  {
-    name: 'バーベル・ベンチプレス',
-    icon: '💥',
-    sets: 4,
-    reps: '8rep',
-    description: '胸板の厚みを作る。背中デーと合わせることで上半身を一気に鍛える。',
-    points: [
-      '肩甲骨を寄せてアーチを作り、肩を守る',
-      'バーを乳首あたりに下ろす',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=バーベルベンチプレス+正しいフォーム',
-    imageUrl: EX_IMAGES['バーベル・ベンチプレス'],
-  },
-  {
-    name: 'ダンベル・ワンハンドロウ',
-    icon: '💪',
-    sets: 3,
-    reps: '10rep（片側）',
-    description: '広背筋への収縮を感じやすい。左右差の修正にも効果的。',
-    points: ['腰骨に向けて引き、引いたところで1秒止める'],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルロウ+広背筋+コツ',
-    imageUrl: EX_IMAGES['ダンベル・ワンハンドロウ'],
-  },
-  {
-    name: 'ダンベル・フライ',
-    icon: '🦋',
-    sets: 3,
-    reps: '12rep ／ 締め種目',
-    description: '胸を最大ストレッチして仕上げる。胸の内側の輪郭を強調。',
-    points: [
-      '肘を少し曲げた状態で弧を描く',
-      '胸の上で絞るように閉じる',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルフライ+大胸筋+コツ',
-    imageUrl: EX_IMAGES['ダンベル・フライ'],
-  },
-];
-
-const bSunExercises: Exercise[] = [
-  {
-    name: 'スミスマシン・ショルダープレス',
-    icon: '🤖',
-    sets: 4,
-    reps: '10rep',
-    description: 'スミスマシンで安定した軌道を確保しながら三角筋全体を追い込む。',
-    points: [
-      '座って行うと安定感が増す',
-      'バーを顎の高さまで下げる',
-      '最大収縮で1秒キープ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=スミスマシンショルダープレス+三角筋',
-    imageUrl: EX_IMAGES['スミスマシン・ショルダープレス'],
-  },
-  {
-    name: 'マシン・サイドレイズ（またはダンベル）',
-    icon: '↔️',
-    sets: 4,
-    reps: '15rep',
-    description: '週2回目の三角筋中部刺激。ポンプを意識して軽めでテンポよく。',
-    points: [
-      '月曜より軽めの重量で高rep',
-      '肩に血を集めてパンプを感じる',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ダンベルサイドレイズ+コツ',
-    imageUrl: EX_IMAGES['マシン・サイドレイズ（またはダンベル）'],
-  },
-  {
-    name: 'レッグプレス',
-    icon: '🦿',
-    sets: 4,
-    reps: '12rep',
-    description: '木曜スクワットの補完として大腿四頭筋・大臀筋をさらに追い込む。',
-    points: [
-      '足幅やや広め、つま先は30度外向き',
-      '腰をシートから浮かさない',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=レッグプレス+やり方+コツ',
-    imageUrl: EX_IMAGES['レッグプレス'],
-  },
-  {
-    name: 'レッグカール',
-    icon: '🔩',
-    sets: 3,
-    reps: '12rep',
-    description: 'ハムストリングスをマシンで単独に追い込む。木曜との相乗効果で太ももの裏を強化。',
-    points: [
-      '最大収縮で1〜2秒キープ',
-      'ゆっくり（3秒）伸ばして戻す',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=レッグカール+フォーム',
-    imageUrl: EX_IMAGES['レッグカール'],
-  },
-  {
-    name: 'ラットプルダウン',
-    icon: '🏄',
-    sets: 3,
-    reps: '10rep ／ ボーナス種目',
-    description: '広背筋の幅を作るVシェイプの主役種目。マシンジムならではのメニュー。',
-    points: [
-      '広めグリップ（肩幅の1.5倍程度）',
-      '胸を張り、バーを鎖骨〜胸の上部に引く',
-      '肩甲骨を下げながら引くイメージ',
-    ],
-    youtubeUrl: 'https://www.youtube.com/results?search_query=ラットプルダウン+広背筋+フォーム',
-    imageUrl: EX_IMAGES['ラットプルダウン'],
-  },
+    points: ['月曜より少し軽い重量でコントロール重視', '15〜20repで筋肉に血を集める'],
+  }),
+  ex('close-grip-bench', 3, '8〜10rep', 'finish'),
+  ex('leg-raise', 3, '15rep', 'core'),
 ];
 
 export const PATTERN_A: TrainingPattern = {
   id: 'a',
   name: 'Pattern A',
-  description: '火曜：マシンジム週',
+  description: '週4回（月・木・金・土）',
   schedule: [
-    {
-      day: '月',
-      label: 'mon',
-      muscleGroup: '肩',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '💪',
-      headerTitle: '月曜：肩（三角筋）',
-      headerVolume: '5種目 ／ 約60〜75分',
-      exercises: shoulderExercises,
-    },
-    {
-      day: '火',
-      label: 'tue',
-      muscleGroup: '脚★',
-      gymType: 'machine',
-      isRest: false,
-      headerIcon: '🦵',
-      headerTitle: '火曜：脚（マシン集中）',
-      headerVolume: '5種目 ／ 約60〜70分',
-      exercises: machineLegExercises,
-    },
-    {
-      day: '水',
-      label: 'wed',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '😴',
-      restTitle: '水曜：完全休養日',
-      restMessage: '筋肉は休んでいる間に育ちます。\n7000〜9000歩の歩行 + 食後10分散歩で\n代謝を維持しましょう。',
-      exercises: [],
-    },
-    {
-      day: '木',
-      label: 'thu',
-      muscleGroup: '背中',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '🏋️',
-      headerTitle: '木曜：背中 + 二頭筋',
-      headerVolume: '5種目 ／ 約60〜75分',
-      exercises: backBicepExercises,
-    },
-    {
-      day: '金',
-      label: 'fri',
-      muscleGroup: '胸',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '🫁',
-      headerTitle: '金曜：胸 + 肩（補助）',
-      headerVolume: '5種目 ／ 約60分',
-      exercises: chestExercises,
-    },
-    {
-      day: '土',
-      label: 'sat',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '🚶',
-      restTitle: '土曜：アクティブレスト',
-      restMessage: '積極的に外出し、7000〜9000歩を歩く日。\n食後の10分散歩も忘れずに。\n筋肉の回復と代謝維持を両立。',
-      exercises: [],
-    },
-    {
-      day: '日',
-      label: 'sun',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '🛌',
-      restTitle: '日曜：完全休養日',
-      restMessage: '週の疲労をリセット。\n来週のトレーニングに備えて\nしっかり睡眠・栄養補給を。',
-      exercises: [],
-    },
+    trainingDay('月', 'mon', '肩', 'free', '💪', '月曜：肩 + 三頭筋', shoulderDay),
+    restDay('火', 'tue', '🚶', '火曜：アクティブレスト（ジム休館日）', '7000〜9000歩の歩行を目標に。\n食後の10分散歩で代謝を維持。\n月曜の疲労を抜く日。'),
+    restDay('水', 'wed', '😴', '水曜：完全休養日（ジム休館日）', '筋肉は休んでいる間に育ちます。\n睡眠と栄養補給を優先して\n木曜からの3日間に備えましょう。'),
+    trainingDay('木', 'thu', '背中', 'free', '🏋️', '木曜：背中 + 二頭筋', aBackBiceps),
+    trainingDay('金', 'fri', '胸', 'free', '🫁', '金曜：胸 + 肩（補助）', aChest),
+    trainingDay('土', 'sat', '脚', 'free', '🦵', '土曜：脚（フリーウェイト）', aFreeLegs, { headerTitle: '土曜：脚（マシン集中）', exercises: aMachineLegs }),
+    restDay('日', 'sun', '🛌', '日曜：完全休養日', '週の疲労をリセット。\n来週のトレーニングに備えて\nしっかり睡眠・栄養補給を。'),
   ],
 };
+
+// ===== Pattern B (週4回：月・木・金・日) =====
+
+// 翌日 (金曜) にデッドリフトがあるため、木曜はハムストリングス・腰に重い種目を入れない
+const bFreeLegs = [
+  ex('barbell-squat', 4, '8rep', 'main'),
+  ex('hip-thrust', 4, '10rep', 'sub'),
+  ex('lunge', 3, '12rep（片脚）', 'sub'),
+  ex('calf-raise-barbell', 4, '15〜20rep', 'finish'),
+  ex('plank', 3, '45〜60秒', 'core'),
+];
+
+const bBackChest = [
+  ex('deadlift', 4, '5rep', 'main'),
+  ex('pull-up', 4, 'できる回数（目標6〜10rep）', 'main', { rest: '2分' }),
+  ex('bench-press', 4, '8rep', 'main', {
+    description: '胸板の厚みを作る。背中デーと合わせることで上半身を一気に鍛える。',
+  }),
+  ex('barbell-row', 3, '8rep', 'sub'),
+  ex('incline-press', 3, '10rep', 'sub'),
+  ex('ab-roller', 3, '8〜12rep', 'core'),
+  ex('neck', 2, '前後 各15rep', 'finish'),
+];
+
+// 基本はフリーウェイトのジム。マシンのジムに行けた日は bMachine に切り替える
+const bFreeSunday = [
+  ex('shoulder-press', 4, '10rep', 'sub'),
+  ex('side-raise', 4, '15rep', 'finish', {
+    description: '週2回目の三角筋中部刺激。ポンプを意識して軽めでテンポよく。',
+    points: ['月曜より軽めの重量で高rep', '肩に血を集めてパンプを感じる'],
+  }),
+  ex('bulgarian-split-squat', 3, '10rep（片脚）', 'sub'),
+  ex('romanian-deadlift', 3, '10rep', 'sub', {
+    description: 'ハムストリングスをストレッチしながら鍛える。金曜のデッドリフトと合わせて太ももの裏を強化。',
+  }),
+  ex('one-arm-row', 3, '10rep（片側）', 'sub'),
+  ex('overhead-triceps-extension', 3, '12rep', 'finish'),
+  ex('leg-raise', 3, '15rep', 'core'),
+];
+
+const bMachine = [
+  ex('smith-shoulder-press', 4, '10rep', 'sub'),
+  ex('machine-side-raise', 4, '15rep', 'finish'),
+  ex('leg-press', 4, '12rep', 'sub', {
+    description: '木曜スクワットの補完として大腿四頭筋・大臀筋をさらに追い込む。',
+  }),
+  ex('leg-curl', 3, '12rep', 'sub', {
+    description: 'ハムストリングスをマシンで単独に追い込む。金曜のデッドリフトと合わせて太ももの裏を強化。',
+  }),
+  ex('lat-pulldown', 3, '10rep', 'sub'),
+  ex('triceps-pushdown', 3, '12rep', 'finish'),
+  ex('leg-raise', 3, '15rep', 'core'),
+];
 
 export const PATTERN_B: TrainingPattern = {
   id: 'b',
   name: 'Pattern B',
-  description: '日曜：マシンジム週',
+  description: '週4回（月・木・金・日）',
   schedule: [
-    {
-      day: '月',
-      label: 'mon',
-      muscleGroup: '肩',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '💪',
-      headerTitle: '月曜：肩（三角筋）',
-      headerVolume: '5種目 ／ 約60〜75分',
-      exercises: shoulderExercises,
-    },
-    {
-      day: '火',
-      label: 'tue',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '🚶',
-      restTitle: '火曜：アクティブレスト',
-      restMessage: '7000〜9000歩の歩行を目標に。\n食後の10分散歩で代謝を維持。',
-      exercises: [],
-    },
-    {
-      day: '水',
-      label: 'wed',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '😴',
-      restTitle: '水曜：完全休養日',
-      restMessage: '月〜火の疲労をリセット。\n木曜のトレーニングに備える。',
-      exercises: [],
-    },
-    {
-      day: '木',
-      label: 'thu',
-      muscleGroup: '脚',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '🦵',
-      headerTitle: '木曜：脚（フリーウェイト）',
-      headerVolume: '5種目 ／ 約65〜75分',
-      exercises: freeWeightLegExercises,
-    },
-    {
-      day: '金',
-      label: 'fri',
-      muscleGroup: '背中+胸',
-      gymType: 'free',
-      isRest: false,
-      headerIcon: '🏋️',
-      headerTitle: '金曜：背中 + 胸',
-      headerVolume: '5種目 ／ 約65分',
-      exercises: bFriExercises,
-    },
-    {
-      day: '土',
-      label: 'sat',
-      muscleGroup: '休み',
-      gymType: 'rest',
-      isRest: true,
-      restIcon: '🚶',
-      restTitle: '土曜：アクティブレスト',
-      restMessage: '7000〜9000歩の歩行を目標に。\n日曜のマシンジムに備えて回復を優先。',
-      exercises: [],
-    },
-    {
-      day: '日',
-      label: 'sun',
-      muscleGroup: '肩+脚★',
-      gymType: 'machine',
-      isRest: false,
-      headerIcon: '★',
-      headerTitle: '日曜：肩 + 脚（マシン）',
-      headerVolume: '5種目 ／ 約60〜70分',
-      exercises: bSunExercises,
-    },
+    trainingDay('月', 'mon', '肩', 'free', '💪', '月曜：肩 + 三頭筋', shoulderDay),
+    restDay('火', 'tue', '🚶', '火曜：アクティブレスト（ジム休館日）', '7000〜9000歩の歩行を目標に。\n食後の10分散歩で代謝を維持。'),
+    restDay('水', 'wed', '😴', '水曜：完全休養日（ジム休館日）', '月〜火の疲労をリセット。\n木曜のトレーニングに備える。'),
+    trainingDay('木', 'thu', '脚', 'free', '🦵', '木曜：脚（フリーウェイト）', bFreeLegs),
+    trainingDay('金', 'fri', '背中+胸', 'free', '🏋️', '金曜：背中 + 胸', bBackChest),
+    restDay('土', 'sat', '🚶', '土曜：アクティブレスト', '7000〜9000歩の歩行を目標に。\n日曜のトレーニングに備えて回復を優先。'),
+    trainingDay('日', 'sun', '肩+脚', 'free', '★', '日曜：肩 + 脚 + 腕（フリーウェイト）', bFreeSunday, { headerTitle: '日曜：肩 + 脚 + 腕（マシン）', exercises: bMachine }),
   ],
 };

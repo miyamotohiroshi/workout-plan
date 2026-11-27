@@ -1,4 +1,8 @@
+/** メニュー内での役割: メイン / 補助 / 仕上げ / 腹筋 */
+export type ExerciseRole = 'main' | 'sub' | 'finish' | 'core';
+
 export interface Exercise {
+  id?: string;
   name: string;
   sets: number;
   reps: string;
@@ -7,6 +11,13 @@ export interface Exercise {
   points: string[];
   youtubeUrl: string;
   imageUrl: string;
+  role?: ExerciseRole;
+  /** セット間の休憩時間 (例: '2〜3分') */
+  rest?: string;
+  /** 重量を上げる目安 */
+  progression?: string;
+  part?: string;
+  equipment?: string;
 }
 
 export interface DaySchedule {
@@ -22,6 +33,12 @@ export interface DaySchedule {
   headerIcon?: string;
   headerTitle?: string;
   headerVolume?: string;
+  /** マシンのジムに行けた日に切り替えて使うメニュー */
+  machineVariant?: {
+    headerTitle: string;
+    headerVolume: string;
+    exercises: Exercise[];
+  };
 }
 
 export interface TrainingPattern {

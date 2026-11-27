@@ -56,7 +56,7 @@ npm run dev   # http://localhost:3000
 | --- | --- | --- |
 | 記録の写真（「写真」タブ） | 本番サーバー `public_html/uploads/photos/` | `api/file.php?b=photos&p=...` 経由（ログイン必須） |
 | ヒーロー画像（トップのスライド） | 本番サーバー `public_html/uploads/hero-images/` | `api/file.php?b=hero-images&p=...` 経由（ログイン必須） |
-| 種目の説明画像（メニュー） | 外部: Pinterest（`i.pinimg.com`） | [src/lib/trainingData.ts](../src/lib/trainingData.ts) に URL を直書き |
+| 種目の説明画像（メニュー） | `public/images/exercises/<種目ID>.jpg`（ビルドで `out/` に含まれる） | Figma の AI 画像生成で作成（横長 3:2・960×640）。種目との対応は [src/lib/exercises.ts](../src/lib/exercises.ts) の `hasImage` |
 | アイコン・favicon | `public/`（ビルドで `out/` に含まれる） | 静的ファイル |
 
 - アップロードは `api/upload.php`、削除は `api/remove.php`。JPG のみ・1 枚 5MB まで（[server/api/storage.php](../server/api/storage.php)）。

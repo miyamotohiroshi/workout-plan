@@ -21,7 +21,25 @@ interface Props {
   history?: ExerciseHistorySummary;
 }
 
-function getEquipmentCategory(name: string): EquipmentCategory {
+const ROLE_LABELS: Record<NonNullable<Exercise['role']>, string> = {
+  main: 'メイン',
+  sub: '補助',
+  finish: '仕上げ',
+  core: '腹筋',
+};
+
+function getEquipmentCategory(exercise: Exercise): EquipmentCategory {
+  if (exercise.role === 'core' || exercise.part === '腹筋') return 'core';
+  switch (exercise.equipment) {
+    case 'barbell': return 'barbell';
+    case 'dumbbell':
+    case 'kettlebell': return 'dumbbell';
+    case 'machine':
+    case 'cable': return 'machine';
+    case 'bodyweight':
+    case 'other': return 'bodyweight';
+  }
+  const name = exercise.name;
   if (/マシン|スミス|ラットプル|レッグプレス|レッグカール|レッグエクステンション/.test(name)) return 'machine';
   if (/ディップス|自重/.test(name)) return 'bodyweight';
   if (/レッグレイズ|プランク/.test(name)) return 'core';
@@ -87,7 +105,7 @@ function EquipmentIcon({ category }: { category: EquipmentCategory }) {
 export default function ExerciseCard({ exercise, history }: Props) {
   const [open, setOpen] = useState(false);
   const latest = history?.latest;
-  const equipmentCategory = getEquipmentCategory(exercise.name);
+  const equipmentCategory = getEquipmentCategory(exercise);
   const { navigateToRecord } = useRecordContext();
 
   const handleRecord = () => {
@@ -107,7 +125,11 @@ export default function ExerciseCard({ exercise, history }: Props) {
         </div>
         <div className="ex-meta">
           <div className="ex-name">{exercise.name}</div>
-          <div className="ex-set">{exercise.sets}セット × {exercise.reps}</div>
+          <div className="ex-set">
+            {exercise.role && <span className={`ex-role ${exercise.role}`}>{ROLE_LABELS[exercise.role]}</span>}
+            {exercise.sets}セット × {exercise.reps}
+            {exercise.rest && <span className="ex-rest"> ／ 休憩{exercise.rest}</span>}
+          </div>
         </div>
         <div className={`ex-chevron${open ? ' open' : ''}`} aria-hidden="true" />
       </div>
@@ -131,6 +153,22 @@ export default function ExerciseCard({ exercise, history }: Props) {
               <li key={i}>{point}</li>
             ))}
           </ul>
+          {(exercise.rest || exercise.progression) && (
+            <dl className="ex-guide">
+              {exercise.rest && (
+                <div>
+                  <dt>休憩</dt>
+                  <dd>セット間 {exercise.rest}</dd>
+                </div>
+              )}
+              {exercise.progression && (
+                <div>
+                  <dt>重量アップ</dt>
+                  <dd>{exercise.progression}</dd>
+                </div>
+              )}
+            </dl>
+          )}
           {latest && (
             <div className="exercise-history">
               <div className="exercise-history-item">

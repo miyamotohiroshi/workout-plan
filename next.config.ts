@@ -8,14 +8,6 @@ const baseConfig: NextConfig = {
   images: {
     // 静的エクスポートでは画像最適化サーバーが使えない
     unoptimized: true,
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'i.pinimg.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
   },
 };
 

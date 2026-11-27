@@ -279,6 +279,9 @@ body::before {
 /* ===== TRAINING PANEL ===== */
 .training-panel{display:none;padding-top:14px;}
 .training-panel.active{display:block;}
+.gym-switch{display:flex;gap:4px;padding:4px;margin-bottom:12px;background:#f1f5f9;border-radius:12px;}
+.gym-switch button{flex:1;min-width:0;padding:9px 6px;border:none;border-radius:9px;background:transparent;font-size:12px;font-weight:700;color:var(--text-sub);cursor:pointer;transition:all .2s;}
+.gym-switch button.active{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(15,23,42,.08);}
 
 .day-header {
   background:var(--card-bg);backdrop-filter:blur(12px);
@@ -335,6 +338,15 @@ body::before {
 .ex-meta{flex:1;min-width:0;}
 .ex-name{font-size:15px;font-weight:700;}
 .ex-set{font-size:12px;color:var(--text-sub);margin-top:2px;}
+.ex-role{display:inline-block;font-size:10px;font-weight:800;line-height:1;padding:3px 6px;border-radius:6px;margin-right:6px;vertical-align:1px;background:#f1f5f9;color:var(--text-sub);}
+.ex-role.main{background:#dbeafe;color:#1d4ed8;}
+.ex-role.finish{background:#f1f5f9;color:#64748b;}
+.ex-role.core{background:#ffedd5;color:#c2410c;}
+.ex-rest{white-space:nowrap;}
+.ex-guide{margin:0 0 12px;padding:10px 12px;background:#f8fafc;border-radius:10px;display:flex;flex-direction:column;gap:6px;}
+.ex-guide div{display:flex;gap:10px;font-size:12px;line-height:1.5;}
+.ex-guide dt{flex-shrink:0;width:5.5em;font-weight:800;color:var(--primary);}
+.ex-guide dd{margin:0;color:var(--text);}
 .ex-chevron{
   width:18px;height:18px;flex-shrink:0;position:relative;
   display:flex;align-items:center;justify-content:center;

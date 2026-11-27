@@ -20,13 +20,15 @@ type ExerciseHistoryMap = Record<string, ExerciseHistorySummary>;
 
 const BODY_PART_IMAGES: Record<string, string> = {
   'a-mon': '/bodyParts/shoulder.jpg',
-  'a-tue': '/bodyParts/legs__machine.jpg',
+  'a-sat': '/bodyParts/legs.jpg',
+  'a-sat-machine': '/bodyParts/legs__machine.jpg',
   'a-thu': '/bodyParts/back.jpg',
   'a-fri': '/bodyParts/chest.jpg',
   'b-mon': '/bodyParts/shoulder.jpg',
   'b-thu': '/bodyParts/legs.jpg',
   'b-fri': '/bodyParts/back-chest.jpg',
-  'b-sun': '/bodyParts/sholder-legs__machine.jpg',
+  'b-sun': '/bodyParts/sholder-legs.jpg',
+  'b-sun-machine': '/bodyParts/sholder-legs__machine.jpg',
 };
 
 function getBodyPartTitle(title: string) {
@@ -50,6 +52,9 @@ function DayPanel({
   patternId: string;
   exerciseHistory: ExerciseHistoryMap;
 }) {
+  // マシンのジムに行けた日だけ、マシン版のメニューに切り替える
+  const [useMachine, setUseMachine] = useState(false);
+
   if (daySchedule.isRest) {
     return (
       <div className="training-panel active">
@@ -62,10 +67,15 @@ function DayPanel({
     );
   }
 
-  const gymType = daySchedule.gymType;
-  const imageSrc = BODY_PART_IMAGES[`${patternId}-${daySchedule.label}`];
-  const bodyPartTitle = getBodyPartTitle(daySchedule.headerTitle ?? daySchedule.muscleGroup);
-  const bodyPartVolume = getBodyPartVolume(daySchedule.headerVolume ?? '');
+  const variant = useMachine ? daySchedule.machineVariant : undefined;
+  const gymType = variant ? 'machine' : daySchedule.gymType;
+  const headerTitle = variant?.headerTitle ?? daySchedule.headerTitle;
+  const headerVolume = variant?.headerVolume ?? daySchedule.headerVolume;
+  const exercises = variant?.exercises ?? daySchedule.exercises;
+  const imageKey = `${patternId}-${daySchedule.label}`;
+  const imageSrc = (variant && BODY_PART_IMAGES[`${imageKey}-machine`]) || BODY_PART_IMAGES[imageKey];
+  const bodyPartTitle = getBodyPartTitle(headerTitle ?? daySchedule.muscleGroup);
+  const bodyPartVolume = getBodyPartVolume(headerVolume ?? '');
   const badgeStyle =
     gymType === 'machine'
       ? { background: 'linear-gradient(135deg,#f5f3ff,#ede9fe)' }
@@ -75,6 +85,16 @@ function DayPanel({
 
   return (
     <div className="training-panel active">
+      {daySchedule.machineVariant && (
+        <div className="gym-switch" role="group" aria-label="行くジム">
+          <button type="button" className={!useMachine ? 'active' : ''} onClick={() => setUseMachine(false)}>
+            🏠 フリーウェイト
+          </button>
+          <button type="button" className={useMachine ? 'active' : ''} onClick={() => setUseMachine(true)}>
+            ★ マシンのジムに行く
+          </button>
+        </div>
+      )}
       {imageSrc ? (
         <div className="body-part-hero">
           <div className="body-part-image" style={{ position: 'relative' }}>
@@ -109,12 +129,12 @@ function DayPanel({
             <div className={`gym-tag${gymType === 'machine' ? ' machine' : ''}`}>
               {gymType === 'machine' ? '★ マシンジム' : '🏠 フリーウェイト'}
             </div>
-            <h3>{daySchedule.headerTitle}</h3>
-            <div className="volume">{daySchedule.headerVolume}</div>
+            <h3>{headerTitle}</h3>
+            <div className="volume">{headerVolume}</div>
           </div>
         </div>
       )}
-      {daySchedule.exercises.map((ex, i) => (
+      {exercises.map((ex, i) => (
         <ExerciseCard key={i} exercise={ex} history={exerciseHistory[ex.name]} />
       ))}
     </div>
@@ -132,7 +152,7 @@ function PatternSection({ pattern, exerciseHistory }: { pattern: TrainingPattern
         activeDayIndex={activeDayIndex}
         onDayChange={setActiveDayIndex}
       />
-      <DayPanel daySchedule={activeDay} patternId={pattern.id} exerciseHistory={exerciseHistory} />
+      <DayPanel key={activeDay.label} daySchedule={activeDay} patternId={pattern.id} exerciseHistory={exerciseHistory} />
     </div>
   );
 }
@@ -192,14 +212,14 @@ export default function MenuPage() {
             onClick={() => setActivePattern('a')}
           >
             <div className="p-name">Pattern A</div>
-            <div className="p-desc">火曜：マシンジム週</div>
+            <div className="p-desc">{PATTERN_A.description}</div>
           </div>
           <div
             className={`pattern-btn${activePattern === 'b' ? ' active' : ''}`}
             onClick={() => setActivePattern('b')}
           >
             <div className="p-name">Pattern B</div>
-            <div className="p-desc">日曜：マシンジム週</div>
+            <div className="p-desc">{PATTERN_B.description}</div>
           </div>
         </div>
       </div>

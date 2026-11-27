@@ -14,6 +14,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { db, getPhotoUrl } from '@/lib/db';
 import { PendingRecord } from '@/lib/recordContext';
+import { EXERCISE_GROUPS, EXERCISES as EXERCISE_DEFS } from '@/lib/exercises';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -26,69 +27,13 @@ const SUB_TABS: { id: SubTab; icon: string; label: string }[] = [
   { id: 'photo', icon: '📸', label: '写真' },
 ];
 
-const EXERCISE_GROUPS = [
-  {
-    group: '🏋️ バーベル',
-    items: [
-      { label: '[肩] バーベル・オーバーヘッドプレス', value: 'バーベル・オーバーヘッドプレス' },
-      { label: '[背中] デッドリフト', value: 'デッドリフト' },
-      { label: '[背中] バーベル・ベントオーバーロウ', value: 'バーベル・ベントオーバーロウ' },
-      { label: '[背中] バーベル・グッドモーニング', value: 'バーベル・グッドモーニング' },
-      { label: '[胸] バーベル・ベンチプレス', value: 'バーベル・ベンチプレス' },
-      { label: '[脚] バーベル・スクワット', value: 'バーベル・スクワット' },
-      { label: '[脚] バーベル・ヒップスラスト', value: 'バーベル・ヒップスラスト' },
-      { label: '[脚] ルーマニアン・デッドリフト', value: 'ルーマニアン・デッドリフト' },
-      { label: '[脚] カーフレイズ（バーベル）', value: 'カーフレイズ（バーベル）' },
-      { label: '[腕] バーベル・カール', value: 'バーベル・カール' },
-    ],
-  },
-  {
-    group: '💪 ダンベル',
-    items: [
-      { label: '[肩] ダンベル・サイドレイズ', value: 'ダンベル・サイドレイズ' },
-      { label: '[肩] ダンベル・リアレイズ', value: 'ダンベル・リアレイズ' },
-      { label: '[肩] ショルダー・プレス', value: 'ショルダー・プレス' },
-      { label: '[肩] ダンベル・シュラッグ', value: 'ダンベル・シュラッグ' },
-      { label: '[胸] ダンベル・インクラインプレス', value: 'ダンベル・インクラインプレス' },
-      { label: '[胸] ダンベル・フライ', value: 'ダンベル・フライ' },
-      { label: '[背中] ダンベル・ワンハンドロウ', value: 'ダンベル・ワンハンドロウ' },
-      { label: '[脚] ダンベル・ランジ', value: 'ダンベル・ランジ' },
-    ],
-  },
-  {
-    group: '🤖 マシン',
-    items: [
-      { label: '[肩] スミスマシン・ショルダープレス', value: 'スミスマシン・ショルダープレス' },
-      { label: '[肩] マシン・サイドレイズ', value: 'マシン・サイドレイズ（またはダンベル）' },
-      { label: '[背中] ラットプルダウン', value: 'ラットプルダウン' },
-      { label: '[脚] スミスマシン・スクワット', value: 'スミスマシン・スクワット' },
-      { label: '[脚] レッグプレス', value: 'レッグプレス' },
-      { label: '[脚] レッグカール', value: 'レッグカール' },
-      { label: '[脚] レッグエクステンション', value: 'レッグエクステンション' },
-      { label: '[脚] カーフレイズ（マシン）', value: 'カーフレイズ（マシン）' },
-    ],
-  },
-  {
-    group: '🤸 その他',
-    items: [
-      { label: '[腕] ディップス（自重）', value: 'ディップス（自重）' },
-      { label: '[腹筋] レッグレイズ', value: 'レッグレイズ' },
-      { label: '[腹筋] プランク', value: 'プランク' },
-    ],
-  },
-];
-
-// フラットリスト（フィルター用）
+// 種目リストは src/lib/exercises.ts の種目マスターから作る
 const EXERCISES = EXERCISE_GROUPS.flatMap(g => g.items.map(i => i.value));
 
-// 種目名 → 部位 マップ（ラベルの[部位]から自動生成）
-const EXERCISE_PART_MAP: Record<string, string> = {};
-EXERCISE_GROUPS.forEach(g => {
-  g.items.forEach(item => {
-    const match = item.label.match(/^\[([^\]]+)\]/);
-    EXERCISE_PART_MAP[item.value] = match ? match[1] : '';
-  });
-});
+// 種目名 → 部位 マップ
+const EXERCISE_PART_MAP: Record<string, string> = Object.fromEntries(
+  EXERCISE_DEFS.map(d => [d.name, d.part]),
+);
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日'];
 
