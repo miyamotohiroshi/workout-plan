@@ -1,0 +1,4 @@
+# 設定ファイル・補助ファイルへの直接アクセスを禁止
+<FilesMatch "^(config(\.sample)?|bootstrap|storage|auth)\.php$">
+  Require all denied
+</FilesMatch>

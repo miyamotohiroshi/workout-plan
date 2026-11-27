@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 type MealData = Record<string, number>;
@@ -102,7 +102,7 @@ export function ProteinAchievementCalendar() {
     let cancelled = false;
 
     async function loadMonth() {
-      const { data } = await supabase
+      const { data } = await db
         .from('protein_logs')
         .select('date, breakfast, lunch, dinner, snack')
         .gte('date', monthStart)
@@ -191,7 +191,7 @@ export default function ProteinTracker() {
 
   const load = useCallback(async () => {
     const loadDate = date;
-    const { data } = await supabase
+    const { data } = await db
       .from('protein_logs')
       .select('*')
       .eq('date', loadDate)
@@ -217,7 +217,7 @@ export default function ProteinTracker() {
   useEffect(() => { load(); }, [load]);
 
   const saveNow = async (saveMeals: MealsData, saveDate: string) => {
-    const { error } = await supabase.from('protein_logs').upsert(
+    const { error } = await db.from('protein_logs').upsert(
       { date: saveDate, ...saveMeals },
       { onConflict: 'date' }
     );

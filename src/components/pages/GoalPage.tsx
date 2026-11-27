@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 const DEFAULT_CURRENT_WEIGHT = 66;
 
@@ -16,7 +16,7 @@ export default function GoalPage() {
     let cancelled = false;
 
     async function loadLatestCheckinWeight() {
-      const { data } = await supabase
+      const { data } = await db
         .from('checkins')
         .select('weight')
         .not('weight', 'is', null)

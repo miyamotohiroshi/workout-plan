@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 
 type HeroImage = {
   path: string;
@@ -37,7 +37,7 @@ const DEFAULT_HERO_SETTINGS: HeroSettings = {
 };
 
 function getPublicHeroUrl(path: string) {
-  const { data } = supabase.storage.from(HERO_SETTINGS_BUCKET).getPublicUrl(path);
+  const { data } = db.storage.from(HERO_SETTINGS_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
 
@@ -141,7 +141,7 @@ export default function Hero() {
     let cancelled = false;
 
     async function loadSettings() {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('app_settings')
         .select('value')
         .eq('key', HERO_SETTINGS_ROW_KEY)
@@ -163,10 +163,10 @@ export default function Hero() {
   useEffect(() => {
     if (!settingsLoaded) return;
     const timer = window.setTimeout(async () => {
-      const { error } = await supabase
+      const { error } = await db
         .from('app_settings')
         .upsert(
-          { key: HERO_SETTINGS_ROW_KEY, value: toStoredHeroSettings(settings), updated_at: new Date().toISOString() },
+          { key: HERO_SETTINGS_ROW_KEY, value: toStoredHeroSettings(settings) },
           { onConflict: 'key' }
         );
 
@@ -209,9 +209,9 @@ export default function Hero() {
       const uploaded = await Promise.all(selected.map(async file => {
         const resized = await resizeImage(file);
         const path = createHeroImagePath();
-        const { error } = await supabase.storage
+        const { error } = await db.storage
           .from(HERO_SETTINGS_BUCKET)
-          .upload(path, resized, { contentType: 'image/jpeg', upsert: false });
+          .upload(path, resized, { upsert: false });
 
         if (error) throw error;
         return { path, url: getPublicHeroUrl(path) };
@@ -237,7 +237,7 @@ export default function Hero() {
         : settings.galleryImagePaths,
     });
     if (image) {
-      await supabase.storage.from(HERO_SETTINGS_BUCKET).remove([image.path]);
+      await db.storage.from(HERO_SETTINGS_BUCKET).remove([image.path]);
     }
   };
 

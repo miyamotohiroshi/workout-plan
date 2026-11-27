@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { PATTERN_A, PATTERN_B } from '@/lib/trainingData';
 import DayTabs from '@/components/training/DayTabs';
 import ExerciseCard, { ExerciseHistorySummary } from '@/components/training/ExerciseCard';
@@ -145,7 +145,7 @@ export default function MenuPage() {
     let cancelled = false;
 
     async function loadExerciseHistory() {
-      const { data } = await supabase
+      const { data } = await db
         .from('exercise_records')
         .select('exercise_name, date, weight, reps, sets')
         .order('date', { ascending: false });

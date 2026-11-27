@@ -12,7 +12,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { supabase, getPhotoUrl } from '@/lib/supabase';
+import { db, getPhotoUrl } from '@/lib/db';
 import { PendingRecord } from '@/lib/recordContext';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -106,24 +106,6 @@ function showToast(msg: string) {
   setTimeout(() => { document.body.removeChild(el); }, 2400);
 }
 
-// ── Check Supabase env ───────────────────────────────────────────────────────
-function EnvWarning() {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return (
-      <div className="rec-card" style={{ color: '#ef4444', textAlign: 'center' }}>
-        Supabase環境変数が設定されていません。<br />
-        <code>.env.local</code> に<br />
-        <code>NEXT_PUBLIC_SUPABASE_URL</code> と<br />
-        <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> を設定してください。
-      </div>
-    );
-  }
-  return null;
-}
-
 // ── サイズ記録 ────────────────────────────────────────────────────────────────
 interface BodyRecord {
   id: string;
@@ -168,7 +150,7 @@ function SizeTab() {
   const parseOptionalNumber = (value: string) => value ? parseFloat(value) : null;
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('body_records')
       .select('*')
       .order('date', { ascending: true });
@@ -179,7 +161,7 @@ function SizeTab() {
     let cancelled = false;
 
     async function loadInitialRecords() {
-      const { data } = await supabase
+      const { data } = await db
         .from('body_records')
         .select('*')
         .order('date', { ascending: true });
@@ -194,7 +176,7 @@ function SizeTab() {
   const save = async () => {
     if (!date) return;
     setSaving(true);
-    const { error } = await supabase.from('body_records').insert({
+    const { error } = await db.from('body_records').insert({
       date,
       weight: parseOptionalNumber(weight),
       body_fat: parseOptionalNumber(bodyFat),
@@ -223,7 +205,7 @@ function SizeTab() {
 
   const saveEdit = async () => {
     if (!editingId || !editDate) return;
-    const { error } = await supabase.from('body_records').update({
+    const { error } = await db.from('body_records').update({
       date: editDate,
       weight: parseOptionalNumber(editWeight),
       body_fat: parseOptionalNumber(editBodyFat),
@@ -240,7 +222,7 @@ function SizeTab() {
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return;
-    await supabase.from('body_records').delete().eq('id', id);
+    await db.from('body_records').delete().eq('id', id);
     setEditingId(null);
     load();
   };
@@ -462,7 +444,7 @@ function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingR
   const [editSets, setEditSets] = useState('');
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('exercise_records')
       .select('*')
       .order('date', { ascending: false });
@@ -473,7 +455,7 @@ function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingR
     let cancelled = false;
 
     async function loadInitialRecords() {
-      const { data } = await supabase
+      const { data } = await db
         .from('exercise_records')
         .select('*')
         .order('date', { ascending: false });
@@ -498,7 +480,7 @@ function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingR
   const save = async () => {
     if (!date || !weight || !reps || !sets) { alert('全項目を入力してください'); return; }
     setSaving(true);
-    const { error } = await supabase.from('exercise_records').insert({
+    const { error } = await db.from('exercise_records').insert({
       date, exercise_name: exerciseName,
       weight: parseFloat(weight), reps: parseInt(reps), sets: parseInt(sets),
     });
@@ -520,7 +502,7 @@ function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingR
 
   const saveEdit = async () => {
     if (!editingId) return;
-    const { error } = await supabase.from('exercise_records').update({
+    const { error } = await db.from('exercise_records').update({
       date: editDate, exercise_name: editExercise,
       weight: parseFloat(editWeight), reps: parseInt(editReps), sets: parseInt(editSets),
     }).eq('id', editingId);
@@ -532,7 +514,7 @@ function WeightTab({ pendingRecord, onClearPending }: { pendingRecord?: PendingR
 
   const del = async (id: string) => {
     if (!confirm('削除しますか？')) return;
-    await supabase.from('exercise_records').delete().eq('id', id);
+    await db.from('exercise_records').delete().eq('id', id);
     setEditingId(null);
     load();
   };
@@ -759,7 +741,7 @@ function PhotoTab() {
   const [lightbox, setLightbox] = useState<PhotoRecord | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('photos')
       .select('*')
       .order('date', { ascending: true });
@@ -770,7 +752,7 @@ function PhotoTab() {
     let cancelled = false;
 
     async function loadInitialPhotos() {
-      const { data } = await supabase
+      const { data } = await db
         .from('photos')
         .select('*')
         .order('date', { ascending: true });
@@ -811,9 +793,9 @@ function PhotoTab() {
     try {
       const blob = await resizeImage(file);
       const path = `${date}-${ANGLE_PATH[angle] ?? 'other'}-${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg' });
+      const { error: upErr } = await db.storage.from('photos').upload(path, blob);
       if (upErr) { alert('アップロードエラー: ' + upErr.message); return; }
-      const { error: dbErr } = await supabase.from('photos').insert({ date, memo, storage_path: path, angle });
+      const { error: dbErr } = await db.from('photos').insert({ date, memo, storage_path: path, angle });
       if (dbErr) { alert('DB保存エラー: ' + dbErr.message); return; }
       showToast('保存しました！');
       setMemo('');
@@ -825,8 +807,8 @@ function PhotoTab() {
 
   const del = async (photo: PhotoRecord) => {
     if (!confirm('削除しますか？')) return;
-    await supabase.storage.from('photos').remove([photo.storage_path]);
-    await supabase.from('photos').delete().eq('id', photo.id);
+    await db.storage.from('photos').remove([photo.storage_path]);
+    await db.from('photos').delete().eq('id', photo.id);
     load();
   };
 
@@ -837,7 +819,7 @@ function PhotoTab() {
   };
 
   const saveEdit = async (photo: PhotoRecord) => {
-    const { error } = await supabase
+    const { error } = await db
       .from('photos')
       .update({ date: editDate, memo: editMemo })
       .eq('id', photo.id);
@@ -1017,214 +999,84 @@ function PhotoTab() {
   );
 }
 
-// ── 出席チェックイン ──────────────────────────────────────────────────────────
-interface CheckinRecord {
-  id: string;
+// ── 出席（重量タブの記録日から自動集計） ──────────────────────────────────────
+interface LegacyCheckin {
   week: string;
-  days: string[];
-  weight: number | null;
-  memo: string;
+  days: string[] | null;
 }
 
-// 月曜始まりカスタムカレンダーピッカー
-function MondayDatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const today = new Date();
-  const [viewYear, setViewYear] = useState(value ? new Date(value).getFullYear() : today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(value ? new Date(value).getMonth() : today.getMonth());
+// 'YYYY-MM-DD' をローカル日付として扱う (new Date(str) は UTC 解釈になり日本時間でずれるため)
+function parseLocalDate(s: string) {
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const calStart = (firstDay + 6) % 7; // Mon=0
-  const cells: (number | null)[] = Array(calStart).fill(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+function formatLocalDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
-  const monthLabel = `${viewYear}年${viewMonth + 1}月`;
-  const todayStr2 = today.toISOString().slice(0, 10);
-
-  const select = (d: number) => {
-    const m = String(viewMonth + 1).padStart(2, '0');
-    const dd = String(d).padStart(2, '0');
-    onChange(`${viewYear}-${m}-${dd}`);
-    setOpen(false);
-  };
-
-  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
-  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <div
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width: '100%', padding: '10px 12px', borderRadius: '10px',
-          border: '1.5px solid #e2e8f0', background: '#fff',
-          fontSize: '14px', color: 'var(--text)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}
-      >
-        <span>{value || '日付を選択'}</span>
-        <span style={{ fontSize: '16px' }}>📅</span>
-      </div>
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
-          background: '#fff', borderRadius: '14px', marginTop: '4px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-          border: '1px solid #e2e8f0', padding: '12px',
-        }}>
-          {/* ヘッダー */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <button onClick={prevMonth} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px' }}>‹</button>
-            <span style={{ fontWeight: 700, fontSize: '14px' }}>{monthLabel}</span>
-            <button onClick={nextMonth} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', padding: '4px 8px' }}>›</button>
-          </div>
-          {/* 曜日ヘッダー */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px', marginBottom: '4px' }}>
-            {['月','火','水','木','金','土','日'].map(d => (
-              <div key={d} style={{ textAlign: 'center', fontSize: '10px', fontWeight: 700, color: 'var(--text-sub)', padding: '2px 0' }}>{d}</div>
-            ))}
-          </div>
-          {/* 日付グリッド */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '2px' }}>
-            {cells.map((d, i) => {
-              if (!d) return <div key={i} />;
-              const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-              const isSelected = dateStr === value;
-              const isToday = dateStr === todayStr2;
-              return (
-                <div
-                  key={i}
-                  onClick={() => select(d)}
-                  style={{
-                    textAlign: 'center', padding: '6px 2px', borderRadius: '8px',
-                    fontSize: '13px', fontWeight: isSelected ? 700 : 400,
-                    cursor: 'pointer',
-                    background: isSelected ? 'linear-gradient(135deg,#2563eb,#0ea5e9)' : 'transparent',
-                    color: isSelected ? '#fff' : isToday ? 'var(--primary)' : 'var(--text)',
-                    border: isToday && !isSelected ? '1.5px solid var(--primary)' : '1.5px solid transparent',
-                  }}
-                >
-                  {d}
-                </div>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            style={{ width: '100%', marginTop: '10px', padding: '8px', background: '#f1f5f9', border: 'none', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-sub)' }}
-          >閉じる</button>
-        </div>
-      )}
-    </div>
-  );
+// その日を含む週の月曜日
+function mondayOf(s: string) {
+  const d = parseLocalDate(s);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return formatLocalDate(d);
 }
 
 function CheckinTab() {
-  const [records, setRecords] = useState<CheckinRecord[]>([]);
-  const [week, setWeek] = useState(todayStr());
-  const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
-  const [weight, setWeight] = useState('');
-  const [memo, setMemo] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editWeek, setEditWeek] = useState('');
-  const [editDays, setEditDays] = useState<Set<string>>(new Set());
-  const [editWeight, setEditWeight] = useState('');
-  const [editMemo, setEditMemo] = useState('');
+  const [trainedDates, setTrainedDates] = useState<Set<string>>(new Set());
+  const [loaded, setLoaded] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
 
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('checkins')
-      .select('*')
-      .order('week', { ascending: false });
-    if (data) setRecords(data as CheckinRecord[]);
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitialRecords() {
-      const { data } = await supabase
-        .from('checkins')
-        .select('*')
-        .order('week', { ascending: false });
+    async function load() {
+      const [exRes, ckRes] = await Promise.all([
+        db.from('exercise_records').select('date'),
+        db.from('checkins').select('week, days'),
+      ]);
+      if (cancelled) return;
 
-      if (!cancelled && data) setRecords(data as CheckinRecord[]);
+      const dates = new Set<string>();
+      ((exRes.data ?? []) as { date: string }[]).forEach(r => {
+        if (r.date) dates.add(r.date.slice(0, 10));
+      });
+      // 以前に手入力した出席データもカレンダーに残す
+      ((ckRes.data ?? []) as LegacyCheckin[]).forEach(r => {
+        if (!r.week || !r.days) return;
+        const monday = parseLocalDate(mondayOf(r.week));
+        DAY_LABELS.forEach((label, idx) => {
+          if (!r.days!.includes(label)) return;
+          const d = new Date(monday);
+          d.setDate(d.getDate() + idx);
+          dates.add(formatLocalDate(d));
+        });
+      });
+
+      setTrainedDates(dates);
+      setLoaded(true);
     }
 
-    loadInitialRecords();
+    load();
     return () => { cancelled = true; };
   }, []);
 
-  const toggleDay = (day: string) => {
-    setSelectedDays(prev => {
-      const next = new Set(prev);
-      if (next.has(day)) { next.delete(day); } else { next.add(day); }
-      return next;
-    });
-  };
-
-  const save = async () => {
-    if (!week || selectedDays.size === 0) { alert('日付とトレーニング日を選択してください'); return; }
-    setSaving(true);
-    const { error } = await supabase.from('checkins').insert({
-      week,
-      days: Array.from(selectedDays),
-      weight: weight ? parseFloat(weight) : null,
-      memo,
-    });
-    setSaving(false);
-    if (error) { alert('エラー: ' + error.message); return; }
-    showToast('保存しました！');
-    setSelectedDays(new Set()); setWeight(''); setMemo('');
-    load();
-  };
-
-  const del = async (id: string) => {
-    if (!confirm('削除しますか？')) return;
-    await supabase.from('checkins').delete().eq('id', id);
-    setEditingId(null);
-    load();
-  };
-
-  const startEdit = (r: CheckinRecord) => {
-    setEditingId(r.id);
-    setEditWeek(r.week);
-    setEditDays(new Set(r.days || []));
-    setEditWeight(r.weight != null ? String(r.weight) : '');
-    setEditMemo(r.memo || '');
-  };
-
-  const saveEdit = async () => {
-    if (!editingId) return;
-    const { error } = await supabase.from('checkins').update({
-      week: editWeek,
-      days: Array.from(editDays),
-      weight: editWeight ? parseFloat(editWeight) : null,
-      memo: editMemo,
-    }).eq('id', editingId);
-    if (error) { alert('エラー: ' + error.message); return; }
-    showToast('更新しました！');
-    setEditingId(null);
-    load();
-  };
-
-  const toggleEditDay = (day: string) => {
-    setEditDays(prev => {
-      const next = new Set(prev);
-      if (next.has(day)) next.delete(day); else next.add(day);
-      return next;
-    });
-  };
+  // 週ごとにまとめる (新しい週が上)
+  const weekMap = new Map<string, string[]>();
+  trainedDates.forEach(date => {
+    const w = mondayOf(date);
+    weekMap.set(w, [...(weekMap.get(w) ?? []), date]);
+  });
+  const weeks = Array.from(weekMap.entries())
+    .map(([week, dates]) => ({ week, dates: dates.sort() }))
+    .sort((a, b) => b.week.localeCompare(a.week));
 
   // Stats
-  const totalDays = records.reduce((s, r) => s + (r.days?.length || 0), 0);
-  const totalWeeks = records.length;
+  const totalDays = trainedDates.size;
+  const totalWeeks = weeks.length;
   const avgPerWeek = totalWeeks > 0 ? (totalDays / totalWeeks).toFixed(1) : '0';
 
   // Calendar for selected month
@@ -1232,29 +1084,6 @@ function CheckinTab() {
   const month = calendarMonth.getMonth();
   const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  // Collect all trained dates from checkins
-  const trainedDates = new Set<string>();
-  records.forEach(r => {
-    // days are weekday labels, use week date as anchor
-    // Store the week date if any day was trained
-    if (r.days && r.days.length > 0) {
-      // Map week date to actual dates based on selected days
-      const weekDate = new Date(r.week);
-      // week is a Monday anchor — find the ISO week start
-      DAY_LABELS.forEach((label, idx) => {
-        if (r.days.includes(label)) {
-          // idx 0=月(Mon)...6=日(Sun)
-          const dayOffset = idx; // Mon=0
-          const d = new Date(weekDate);
-          // Adjust to Monday of that week
-          const dayOfWeek = (d.getDay() + 6) % 7; // Mon=0
-          d.setDate(d.getDate() - dayOfWeek + dayOffset);
-          trainedDates.add(d.toISOString().slice(0, 10));
-        }
-      });
-    }
-  });
 
   // Build calendar cells: Mon-first
   const calStart = (firstDay + 6) % 7; // shift Sun=0 → Mon=0
@@ -1266,45 +1095,21 @@ function CheckinTab() {
     setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
   };
 
+  const weekLabel = (week: string) => {
+    const start = parseLocalDate(week);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return `${start.getMonth() + 1}/${start.getDate()}〜${end.getMonth() + 1}/${end.getDate()}`;
+  };
+  const weekdayLabel = (date: string) => DAY_LABELS[(parseLocalDate(date).getDay() + 6) % 7];
+
   return (
     <div className="record-panel active">
       <div className="rec-card">
-        <div className="rec-card-title">チェックイン入力</div>
-        <div className="input-row">
-          <div className="input-group">
-            <label>週（日付）</label>
-            <MondayDatePicker value={week} onChange={setWeek} />
-          </div>
-          <div className="input-group">
-            <label>体重(kg)</label>
-            <input type="number" step="0.1" placeholder="75.0" value={weight} onChange={e => setWeight(e.target.value)} />
-          </div>
-        </div>
-        <div style={{ marginBottom: '10px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '6px' }}>トレーニング実施日</div>
-          <div className="checkin-days">
-            {DAY_LABELS.map(d => (
-              <div
-                key={d}
-                className={`checkin-day${selectedDays.has(d) ? ' selected' : ''}`}
-                onClick={() => toggleDay(d)}
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="input-group" style={{ marginBottom: '10px' }}>
-          <label>メモ</label>
-          <input type="text" placeholder="今週の振り返り（任意）" value={memo} onChange={e => setMemo(e.target.value)} />
-        </div>
-        <button className="save-btn" onClick={save} disabled={saving}>
-          {saving ? '保存中...' : '✅ チェックイン'}
-        </button>
-      </div>
-
-      <div className="rec-card">
         <div className="rec-card-title">統計</div>
+        <div style={{ fontSize: '12px', color: 'var(--text-sub)', marginBottom: '10px' }}>
+          「重量」タブで記録した日が自動で出席になります
+        </div>
         <div className="stat-row">
           <div className="stat-box">
             <div className="stat-val">{totalDays}</div>
@@ -1338,7 +1143,7 @@ function CheckinTab() {
           </button>
         </div>
         <div className="calendar-grid">
-          {['月', '火', '水', '木', '金', '土', '日'].map(d => (
+          {DAY_LABELS.map(d => (
             <div key={d} className="cal-header">{d}</div>
           ))}
           {cells.map((day, i) => {
@@ -1357,71 +1162,17 @@ function CheckinTab() {
       <div className="rec-card">
         <div className="rec-card-title">週間記録</div>
         <div className="record-list">
-          {records.map(r => {
-            const isEditing = editingId === r.id;
-            return (
-              <div key={r.id} style={{ marginBottom: '8px' }}>
-                <div className="record-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                    <span style={{ fontWeight: 700 }}>{r.week}</span>
-                    <button
-                      className="delete-btn"
-                      onClick={() => isEditing ? setEditingId(null) : startEdit(r)}
-                      style={{ color: isEditing ? '#94a3b8' : 'var(--primary)', fontSize: '12px', fontWeight: 600 }}
-                    >
-                      {isEditing ? '閉じる' : '編集'}
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
-                    {r.days?.join(' ')} ／ {r.days?.length || 0}日
-                    {r.weight != null && ` ／ 体重 ${r.weight}kg`}
-                    {r.memo && ` ／ ${r.memo}`}
-                  </div>
-                </div>
-
-                {isEditing && (
-                  <div style={{
-                    background: '#f8fafc', borderRadius: '12px', padding: '12px',
-                    marginTop: '4px', border: '1px solid rgba(59,130,246,0.2)',
-                  }}>
-                    <div className="input-group" style={{ marginBottom: '8px' }}>
-                      <label>日付</label>
-                      <MondayDatePicker value={editWeek} onChange={setEditWeek} />
-                    </div>
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-sub)', marginBottom: '6px' }}>トレーニング実施日</div>
-                    <div className="checkin-days" style={{ marginBottom: '10px' }}>
-                      {DAY_LABELS.map(d => (
-                        <div
-                          key={d}
-                          className={`checkin-day${editDays.has(d) ? ' selected' : ''}`}
-                          onClick={() => toggleEditDay(d)}
-                        >{d}</div>
-                      ))}
-                    </div>
-                    <div className="input-row">
-                      <div className="input-group">
-                        <label>体重(kg)</label>
-                        <input type="number" step="0.1" placeholder="75.0" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
-                      </div>
-                      <div className="input-group">
-                        <label>メモ</label>
-                        <input type="text" placeholder="任意" value={editMemo} onChange={e => setEditMemo(e.target.value)} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                      <button onClick={() => del(r.id)} style={{ flex: 1, background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                        削除
-                      </button>
-                      <button onClick={saveEdit} style={{ flex: 2, background: 'linear-gradient(135deg,#2563eb,#0ea5e9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                        保存
-                      </button>
-                    </div>
-                  </div>
-                )}
+          {weeks.map(w => (
+            <div key={w.week} className="record-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px', marginBottom: '8px' }}>
+              <span style={{ fontWeight: 700 }}>{weekLabel(w.week)}</span>
+              <div style={{ fontSize: '12px', color: 'var(--text-sub)' }}>
+                {w.dates.map(weekdayLabel).join(' ')} ／ {w.dates.length}日
               </div>
-            );
-          })}
-          {records.length === 0 && <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>}
+            </div>
+          ))}
+          {loaded && weeks.length === 0 && (
+            <div style={{ color: 'var(--text-sub)', fontSize: '13px', textAlign: 'center', padding: '16px' }}>記録がありません</div>
+          )}
         </div>
       </div>
     </div>
@@ -1442,7 +1193,6 @@ export default function RecordPage({ pendingRecord, onClearPending }: { pendingR
     <div className="container">
       <div className="section">
         <div className="section-title"><span>記録</span></div>
-        <EnvWarning />
 
         <div className="record-subtabs">
           {SUB_TABS.map(tab => (
